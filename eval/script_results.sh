@@ -2,7 +2,6 @@
 
 
 model_names_100M=(
-            /datasets/pretrained-llms/Llama-3.2-1B/
             'babylm/babyllama-100m-2024'
             'babylm/opt-125m-strict-2023'
             'babylm/roberta-base-strict-2023'
@@ -13,7 +12,6 @@ model_names_100M=(
             'SzegedAI/babylm24_MLSM_strict'
             )
 model_names_10M=(
-            #/datasets/pretrained-llms/Llama-3.2-1B/
             #'babylm/babyllama-10m-2024'
             #'babylm/opt-125m-strict-small-2023'
             #'babylm/roberta-base-strict-small-2023'

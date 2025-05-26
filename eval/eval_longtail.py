@@ -8,54 +8,6 @@ from utils import check_capital_and_punc, pretty_print, pretty_print_avg
 os.environ["TOKENIZERS_PARALLELISM"]='false'
 import sys,json
 
-def use_madeup_inflswap(w1,w2,g1,g2,pos):
-    oldw1,oldw2=w1,w2
-    madeup='tartouf'
-    if w1[-2:]=='ed' and pos=='VERB':
-        w1=madeup+'ed'
-    elif w1[-1:]=='s'and pos!='ADJ':
-        w1=madeup+'s'
-    elif w1[-3:]=='ing' and pos=='VERB':
-        w1=madeup+'ing' 
-    else:
-        w1=madeup
-
-    if w2[-2:]=='ed' and pos=='VERB':
-        w2=madeup+'ed'
-    elif w2[-1:]=='s' and pos!='ADJ':
-        w2=madeup+'s'
-    elif w2[-3:]=='ing' and pos=='VERB':
-        w2=madeup+'ing' 
-    else:
-        w2=madeup
-    #if oldw1[:2]=='un':
-    #    w1='un'+w1
-    #elif oldw2[:2]=='un':
-    #    w2='un'+w2
-    #formatting did not work
-    if w1==w2:
-        return None,None,None,None,None,None
-    #w1,w2=oldw1,oldw2
-    #changing w1 and w2 in generated sentences by their new form    
-    g1,g2=g1.split(' '),g2.split(' ')
-    g1[ig1],g2[ig2]=w1,w2
-    g1,g2=' '.join(g1),' '.join(g2) 
-    return w1,w2,g1,g2,oldw1,oldw2
-
-def use_madeup_wordswap(w1,w2,g1,g2,s1,s2):
-      
-    g1,g2=g1.split(' '),g2.split(' ')
-    s1,s2=s1.split(' '),s2.split(' ')
-    iw1=s1.index(w1)
-    iw2=s2.index(w2)
-
-    #w1,w2='blick','dax'
-    w1,w2='dax','blick'
-    g1[ig1],g2[ig2]=w1,w2
-    s1[iw1],s2[iw2]=w1,w2
-    g1,g2=' '.join(g1),' '.join(g2) 
-    s1,s2=' '.join(s1),' '.join(s2) 
-    return w1,w2,g1,g2,s1,s2
 
 
 
@@ -132,7 +84,6 @@ if __name__ == '__main__':
     else:
         cuda=False
     use_context=False
-    use_all_pos=False
     verbose=True
     if '_100M' in pairs_file:
         pretraining_file='BabyLM_2024_formatted/longtail_100M'
@@ -187,8 +138,6 @@ if __name__ == '__main__':
         output_dir=os.path.join(output_dir,'syntax')
     elif 'wordswap' in pairs_file:
         output_dir=os.path.join(output_dir,'wordswap')
-    elif 'feasable' in pairs_file:
-        output_dir=os.path.join(output_dir,'feasable')
     else:
         assert False,pairs_file
 
@@ -234,86 +183,42 @@ if __name__ == '__main__':
         pair=pairs[p].rstrip()   
         bin,pos,w1,s1,i1,g1,ig1,w2,s2,i2,g2,ig2=pair.split('|')
         ig1,ig2=int(ig1),int(ig2)
-        
-        #if p%2==0:
-        #    continue
-        # make words in lower case
-        # make sentences start with upper case and finish with period
-        # also asserting the words are correctly placed in the sentences 
-        #w1,w2,g1,g2=check_capital_and_punc(w1,w2,g1,g2,ig1,ig2)
-  
+    
         
         if True:
             f1,f2=dictionnary.get(w1,0),dictionnary.get(w2,0)
             b1=np.where(f1>=freq_bins)[0][-1]
             b2=np.where(f2>=freq_bins)[0][-1]
-            #if abs(b2-b1)>1:
-            #this destroy the frequency effect  
-            #    continue
             bin=int(round(np.min([b1,b2])))
         bin=int(bin)
         if bin>1:
             continue
         assert w1!=w2,pair
 
-        if not use_all_pos:
-            pos=pos.split('_')[0].split('-')[0]
-            if 'inflswap' in pairs_file or 'wordswap' in pairs_file:
-                if pos=='ADJ':
-                    #not enough ADJ per bin
-                    continue
-            if 'syntax' in pairs_file:
-                if 'DET' in pos:
-                    pos='SHORT'
-                elif 'SHORT' in pos:
-                    pos='SHORT'
-                elif 'LONG' in pos:
-                    pos='LONG'
-                else:
-                    continue
-        else:
-            if pos not in pos_success[bin]:
-                pos_success[bin][pos]=0
-                pos_all_pairs[bin][pos]=0
-        
-        
-        
-
-        if False:
-            #if 'VERB' not in pos:
-            #    continue
-            #w1,w2,g1,g2,_,_=use_madeup_inflswap(w1,w2,g1,g2,pos)
-            w1,w2,g1,g2,s1,s2=use_madeup_wordswap(w1,w2,g1,g2,s1,s2)
-            if w1 is None: 
+        pos=pos.split('_')[0].split('-')[0]
+        if 'inflswap' in pairs_file or 'wordswap' in pairs_file:
+            if pos=='ADJ':
+                #not enough ADJ per bin
                 continue
-
+        if 'syntax' in pairs_file:
+            if 'DET' in pos:
+                pos='SHORT'
+            elif 'SHORT' in pos:
+                pos='SHORT'
+            elif 'LONG' in pos:
+                pos='LONG'
+            else:
+                continue
+        
         gg1,gg2=swap_words(w1,ig1,g1,w2,ig2,g2)    
        
         sentence_good_1,sentence_good_2=g1,g2
         sentence_bad_1,sentence_bad_2=gg1,gg2
 
         if use_context:
-            if True:
-                #using the true context
-                context_good_1,context_good_2=s1,s2
-                context_bad_1,context_bad_2=s2,s1
-            else:
-                tmp_good_1,tmp_good_2=sentence_good_1,sentence_good_2
-                tmp_bad_1,tmp_bad_2=sentence_bad_1,sentence_bad_2
-                if False:
-                    #sampling random context
-                    pp=random.randint(0,len(pairs)-1)
-                    _,_,_,tmp_good_1,_,_,_,_,tmp_bad_1,_,_,_=pairs[pp].split('|')
-                    pp=random.randint(0,len(pairs)-1)
-                    _,_,_,tmp_good_2,_,_,_,_,tmp_bad_2,_,_,_=pairs[pp].split('|') 
-                context_good_1,_,_=get_context(context_data,tmp_good_1)
-                context_good_2,_,_=get_context(context_data,tmp_good_2)
-                context_bad_1,_,_=get_context(context_data,tmp_bad_1)
-                context_bad_2,_,_=get_context(context_data,tmp_bad_2)
-            
-            #context_good_1,context_good_2,context_bad_1,context_bad_2='','','',''
-            if context_good_1!='' or context_good_2!='':
-                prop_context+=1
+            context_good_1,context_good_2=s1,s2
+            context_bad_1,context_bad_2=s2,s1
+            prop_context+=1
 
             sentence_good_1=' '.join((context_good_1,sentence_good_1))
             sentence_bad_1=' '.join((context_bad_1,sentence_bad_1))

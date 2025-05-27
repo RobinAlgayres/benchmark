@@ -89,8 +89,11 @@ python retrieve_correct_pairs.py $TASK_DIR/syntax_sentence_pairs_to_be_filtered 
 
 ## Evaluating LM on LT-Swap10M and LT-Swap100M
 
-LT-Swap10M and LT-Swap100M are created based on the BabyLM 10M and 100M words text datasets. Each task is composed of three files for WordSwap, InflectionSwap and AgreementSwap. Each line is formatted as follows:
+LT-Swap10M and LT-Swap100M are created based on the BabyLM 10M and 100M words text datasets. Each task is composed of three subtask files for WordSwap, InflectionSwap and AgreementSwap. Each line is formatted as follows:
 ```
 <frequency bin index> <POS tag> <target word 1> <generated sentence 1> <index of word 1 in sentence 1> <target word 2> <generated sentence 2> <index of word 2 in sentence 2>
 ```
-
+In order to evaluate a model on any subtasks do the following
+```
+python eval_longtail.py <path to subtasks file> <huggingface model name>
+```

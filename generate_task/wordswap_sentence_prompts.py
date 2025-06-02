@@ -4,16 +4,16 @@ import argparse
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--wordslist",type=str,help='path to words list file for WordSwap',default='babylm-lt-swap/tmp_files_10M/longtail_wordslist')
+    parser.add_argument("--wordlist",type=str,help='path to words list file for WordSwap',default='babylm-lt-swap/tmp_files_10M/longtail_wordlist')
     parser.add_argument("--output_file",type=str,help='path to sentence generation prompts file',default='babylm-lt-swap/tmp_files_10M/wordswap_sentence_prompts')
     return parser.parse_args(argv)
 
 if __name__=='__main__':
     args=parse_arguments(sys.argv[1:])
-    wordslist_file=args.wordslist
+    wordlist_file=args.wordlist
     output_file=args.output_file
     out=[]
-    with open(wordslist_file) as buf:
+    with open(wordlist_file) as buf:
         lines=buf.readlines()
     for line in tqdm.tqdm(lines):
         bin,word,pos,index,sentence=line.rstrip().split('|')

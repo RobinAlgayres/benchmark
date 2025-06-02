@@ -16,18 +16,18 @@ The whole process is identical for any English text dataset. As an example we se
 
 First step is to create a list of word candidates and word inflections for each file in the BabyLM datasets. This is done in parallel with 5 cpus.
 ```
-python generate_tasks/get_words_lists.py  $PRETRAINING_DIR/ $TASK_DIR/wordlist_per_file/ 5
+python generate_task/get_word_lists.py  --data=$PRETRAINING_DIR/ --output_wordlists_dir=$TASK_DIR/wordlists/ --ncpus=5
 ```
 We merge those words lists and create two files: one list of words for WordSwap and one list of inflected pairs for InflectionSwap and AgreementSwap
 ```
-python generate_tasks/build_longtail.py $TASK_DIR/wordlist_per_file/ $TASK_DIR/longtail_semantic $TASK_DIR/longtail_syntax
+python generate_task/build_longtail.py --wordlists_dir=$TASK_DIR/wordlists/ --output_wordlist=$TASK_DIR/longtail_wordlist --output_inflpairs=$TASK_DIR/longtail_inflpairs --output_voc=$TASK_DIR/vocabulary
 ```
 
 ### Creating WordSwap
 
 This prompts will directly ask an LLM to generate sentences for WordSwap.
 ```
-python generate_tasks/wordswap_sentence_prompts.py $TASK_DIR/longtail_semantic $TASK_DIR/wordswap_sentence_prompts
+python generate_tasks/wordswap_sentence_prompts.py --wordlist=$TASK_DIR/longtail_wordslist $TASK_DIR/wordswap_sentence_prompts
 ```
 The prompts are sent to the LLM for generation
 ```

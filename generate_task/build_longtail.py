@@ -34,8 +34,8 @@ def concat_dict(path,char_dict):
                 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data",type=str,help='path to wordslist dir created by get_words_lists.py',default='babylm-lt-swap/tmp_files_10M/wordslist_per_file/')
-    parser.add_argument("--output_wordslist",type=str,help='path to words list file for WordSwap',default='babylm-lt-swap/tmp_files_10M/longtail_wordslist')
+    parser.add_argument("--wordlists_dir",type=str,help='path to wordslist dir created by get_words_lists.py',default='babylm-lt-swap/tmp_files_10M/wordlists/')
+    parser.add_argument("--output_wordlist",type=str,help='path to words list file for WordSwap',default='babylm-lt-swap/tmp_files_10M/longtail_wordlist')
     parser.add_argument('--output_inflpairs',type=str,help='path to words pairs file for InflSwap and AgrSwap',default='babylm-lt-swap/tmp_files_10M/longtail_inflpairs')
     parser.add_argument('--output_voc',type=str,help='path to vocabulary file',default='babylm-lt-swap/tmp_files_10M/vocabulary')
     return parser.parse_args(argv)
@@ -44,16 +44,16 @@ def parse_arguments(argv):
 
 if __name__=='__main__':
     args=parse_arguments(sys.argv[1:])
-    data=args.data
-    output_wordslist_file=args.output_wordslist
+    wordlists_dir=args.wordlists_dir
+    output_wordlist_file=args.output_wordlist
     output_inflpairs_file=args.output_inflpairs
     output_voc_file=args.output_voc
     freq_bins=np.array([0,1,2,4,8,16,32,64,128,256,512,np.inf])
     char_dict={}
     words_per_bins={}
     longtail_morpho,longtail_infl=[],[]
-    for fid in os.listdir(data):
-        path=os.path.join(data,fid)
+    for fid in os.listdir(wordlists_dir):
+        path=os.path.join(wordlists_dir,fid)
         concat_dict(path,char_dict)
     print('nb keys',len(char_dict.keys()))
     spell = SpellChecker()
@@ -132,7 +132,7 @@ if __name__=='__main__':
     print('skipped words for wrong context:',skipped_words) 
     print('number of words for wordswap:',len(longtail_morpho))
     print('number of inflected pairs for agr/inflswap:',len(longtail_infl))
-    with open(output_wordslist_file,'w') as buf:
+    with open(output_wordlist_file,'w') as buf:
         buf.write('\n'.join(longtail_morpho)+'\n')
     with open(output_inflpairs_file,'w') as buf:
         buf.write('\n'.join(longtail_infl)+'\n')
@@ -142,4 +142,4 @@ if __name__=='__main__':
         output.append(key+' '+str(voc[key]))
     with open(output_voc_file,'w') as buf:
         buf.write('\n'.join(output)+'\n')
-    print('saving at',output_wordslist_file,output_inflpairs_file,output_voc_file)
+    print('saving at',output_wordlist_file,output_inflpairs_file,output_voc_file)

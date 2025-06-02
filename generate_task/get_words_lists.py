@@ -143,7 +143,7 @@ def get_word_list(args):
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--data",type=str,help='path to pretraining dataset dir containing text files',default='babylm-lt-swap/tmp_files_10M/train_10M/')
-    parser.add_argument("--output_wordslist",type=str,help='path to words list directory to be created',default='babylm-lt-swap/tmp_files_10M/wordslist_per_file/')
+    parser.add_argument("--output_wordlists_dir",type=str,help='path to words list directory to be created',default='babylm-lt-swap/tmp_files_10M/wordlists/')
     parser.add_argument("--ncpus",type=int,help='number of cpus for parallel computing, one per text file maximum',default=5)
     return parser.parse_args(argv)
 
@@ -153,17 +153,17 @@ if __name__=='__main__':
     #some words are rejected altogether if contain illegal characters
     args=parse_arguments(sys.argv[1:])
     data=args.data
-    output_wordslist_dir=args.output_wordslist
+    output_wordlists_dir=args.output_wordlists_dir
     ncpus=args.ncpus
     
-    if not os.path.isdir(output_wordslist_dir):
-        os.makedirs(output_wordslist_dir)
+    if not os.path.isdir(output_wordlists_dir):
+        os.makedirs(output_wordlists_dir)
 
     #get word list and POS for each fid.
     arguments=[]
     for fid in os.listdir(data):
         path=os.path.join(data,fid)
-        arguments.append((path,fid,output_wordslist_dir))
+        arguments.append((path,fid,output_wordlists_dir))
 
     if ncpus==1:
         for argument in arguments:

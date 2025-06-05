@@ -2,6 +2,7 @@ import numpy as np
 import random, json, sys
 import tqdm, argparse
 
+
 def make_prompt_minimal(word,inflection,pos,rule):
     pos=pos.lower()+'s'
     adding=''
@@ -34,25 +35,16 @@ def parse_arguments(argv):
     parser.add_argument("--output_file",type=str,help='path to minimal sentence pairs prompts',default='babylm-lt-swap/tmp_files_10M/syntax_sentence_prompts')
     return parser.parse_args(argv)
 
-if __name__=='__main__':
-    args=parse_arguments(sys.argv[1:])
-    inflpairs_file=args.inflpairs
-    output_file=args.output_file
-    dictionnary={}
-    out=[]
 
 if __name__ == '__main__':
     args=parse_arguments(sys.argv[1:])
     input_file=args.inflpairs
     output_file=args.output_file
-
     with open(input_file) as buf:
         lines=buf.readlines()
     out=[]
     for line in tqdm.tqdm(lines):
-        if len(line.rstrip().split('|'))!=7:
-            continue
-        bin,word,pos,inflection,pos_infl,prompt,metadata,llm_output=line.rstrip().split('|')
+        bin,word,pos,inflection,pos_infl,metadata,llm_output=line.rstrip().split('|')
         #formatting the generated sentence from the llm and checking it says 'yes'
         start=llm_output.rfind('[')
         end=llm_output.rfind(']')
@@ -76,8 +68,9 @@ if __name__ == '__main__':
                 out.append('|'.join((bin,word,pos,inflection,pos_infl,rule,prompt)))
                 out.append('|'.join((bin,word,pos,inflection,pos_infl,rule,prompt)))
                 out.append('|'.join((bin,word,pos,inflection,pos_infl,rule,prompt)))
-                out.append('|'.join((bin,word,pos,inflection,pos_infl,rule,prompt)))
-            
+    
+    print(output_file,len(out))
     with open(output_file,'w') as buf:
         buf.write('\n'.join(out)+'\n')
-    print(output_file,len(out))
+     
+    

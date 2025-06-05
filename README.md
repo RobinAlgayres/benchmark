@@ -27,64 +27,56 @@ python generate_task/build_longtail.py --wordlists_dir=$TASK_DIR/wordlists/ --ou
 
 This prompts will directly ask an LLM to generate sentences for WordSwap.
 ```
-python generate_tasks/wordswap_sentence_prompts.py --wordlist=$TASK_DIR/longtail_wordslist $TASK_DIR/wordswap_sentence_prompts
+python generate_task/wordswap_sentence_prompts.py --wordlist=$TASK_DIR/longtail_wordlist --output_file=$TASK_DIR/wordswap_sentence_prompts
 ```
 The prompts are sent to the LLM for generation
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_tasks/hf_generate.py $TASK_DIR/wordswap_sentence_prompts $TASK_DIR/tmp_dir $TASK_DIR/wordswap_sentence_generations
+python generate_tasks/hf_generate.py --input_file=$TASK_DIR/wordswap_sentence_prompts --output_dir=$TASK_DIR/tmp_dir --output_file=$TASK_DIR/wordswap_sentence_generations
 rm -r $TASK_DIR/tmp_dir
 ```
 Create the prompts for the LLM filtering step
 ```
-python generate_tasks/wordswap_sentence_pairing_and_filtering_prompts.py $TASK_DIR/wordswap_sentence_generations $TASK_DIR/wordswap_sentence_pairs_filtering_prompts
+python generate_task/wordswap_pairs_and_filtering_prompts.py --input_file=$TASK_DIR/wordswap_sentence_generations --output_file=$TASK_DIR/wordswap_sentence_pairs_filtering_prompts --voc_file=$TASK_DIR/vocabulary
 ```
-The prompts are sent to the LLM for filtering
+The prompts are sent to the LLM for filtering. The output is the final WordSwap task: a text file with the sentence pairs that passed the filter.
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_tasks/hf_generate.py $TASK_DIR/wordswap_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/wordswap_sentence_pairs_to_be_filtered
+python generate_task/hf_generate.py --input_file=$TASK_DIR/wordswap_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/wordswap_sentence_pairs
 rm -r $TASK_DIR/tmp_dir
-```
-Retrieve the feasable pairs of WordSwap sentences. The output file is the final WordSwap task, please refer to the evaluation section for usage of the task.
-```
-python retrieve_correct_pairs.py $TASK_DIR/wordswap_sentence_pairs_to_be_filtered $TASK_DIR/wordswap_sentence_pairs
 ```
 ### Creating InflectionSwap and AgreementSwap
 
 For InflectionSwap and AgreementSwap we first ask an LLM if the automatically computed inflected pairs are indeed inflections of the same word. In addition for AgreementSwap we ask the LLM if the inflected pairs are words that could take a reflexive pronoun.
 ```
-python generate_tasks/syntax_words_filtering_prompts.py $TASK_DIR/longtail_syntax $TASK_DIR/syntax_words_filtering_prompts
+python generate_task/inflpairs_filtering_prompts.py --inflpairs=$TASK_DIR/longtail_inflpairs --output_file=$TASK_DIR/inflpairs_filtering_prompts
 ```
 The prompts are sent to the LLM for filtering
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_tasks/hf_generate.py $TASK_DIR/syntax_words_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_words_to_be_filtered
+python generate_task/hf_generate.py $TASK_DIR/syntax_words_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_words_to_be_filtered
 rm -r $TASK_DIR/tmp_dir
 ```
 Filter words and create the prompts for AgreementSwap and InflectionSwap sentence generations
 ```
-python generate_tasks/syntax_sentence_prompts.py $TASK_DIR/syntax_words_to_be_filtered $TASK_DIR/syntax_sentence_pairs_prompts
+python generate_taskssyntax_sentence_prompts.py $TASK_DIR/syntax_words_to_be_filtered $TASK_DIR/syntax_sentence_pairs_prompts
 ```
 The prompts are sent to the LLM for generations
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_tasks/hf_generate.py $TASK_DIR/syntax_sentence_pairs_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_sentence_pairs_generations
+python generate_task/hf_generate.py $TASK_DIR/syntax_sentence_pairs_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_sentence_pairs_generations
 rm -r $TASK_DIR/tmp_dir
 ```
 
 Create the prompts for the LLM filtering step
 ```
-python generate_tasks/syntax_sentence_pairs_filtering_prompts.py $TASK_DIR/syntax_sentence_generations $TASK_DIR/syntax_sentence_pairs_filtering_prompts
+python generate_task/syntax_sentence_pairs_filtering_prompts.py $TASK_DIR/syntax_sentence_generations $TASK_DIR/syntax_sentence_pairs_filtering_prompts
 ```
-The prompts are sent to the LLM for generations
+The prompts are sent to the LLM for filtering. The output is the final Agreement and InflectionSwap tasks: a text file with the sentence pairs that passed the filter. 
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_tasks/hf_generate.py $TASK_DIR/syntax_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_sentence_pairs_to_be_filtered
+python generate_task/hf_generate.py $TASK_DIR/syntax_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_sentence_pairs
 rm -r $TASK_DIR/tmp_dir
-```
-Retrieve the feasable pairs of WordSwap sentences. The output file is the final WordSwap task, please refer to the evaluation section for usage of the task.
-```
-python retrieve_correct_pairs.py $TASK_DIR/syntax_sentence_pairs_to_be_filtered $TASK_DIR/syntax_sentence_pairs
 ```
 
 ## Evaluating LM on LT-Swap10M and LT-Swap100M

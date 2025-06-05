@@ -120,28 +120,36 @@ def find_index_and_target_word(sentence,w1,w2,vocabulary):
     #sentence contains either w1 or w2, this function finds the target word
     #put that word in lower case, and return None if unkown word is used
     index=None
-    sentence=nltk.word_tokenizer(sentence)
+    sentence=nltk.word_tokenize(sentence)
+    new_sentence=[]
     for i in range(len(sentence)):
-        w=sentence[i]
-        if w not in vocabulary:
-            return None
-        if w.lower() in [w1,w2]:
+        w=sentence[i].lower()
+        new_sentence.append(sentence[i])
+        if len(w)>2 and w not in vocabulary:
+            return None,None
+        if w in [w1,w2]:
             #lower casing target word
-            w=w.lower()
             if index is not None:
                 #w1 and w2 are both present or one of them is present twice
-                return None
+                return None,None
             index=i  
             word=w
-    return index,word
+            new_sentence[i]=w
+
+    return index,word,new_sentence
 
 def find_two_generations(w1_tmp,w2_tmp,g,vocabulary,rule):
+    start=g.rfind('[')
+    end=g.rfind(']')
+    if start==-1 or end==-1:
+        return None,None,None,None
+    g=g[start+1:end]
     g=g.replace('\\','')
     g=g.replace('\"','')
     g=g.replace('\'','')   
     #removing empty space
     g=' '.join(list(filter(None, g.split(' '))))
-
+    g1,g2=None,None
     #the pattern that enables to split the sentence is not always a period.
     for pattern in ['.','!','?','/',', but',', while',', whereas',', and ',',',';']:
         #final period is not a separator
@@ -155,12 +163,12 @@ def find_two_generations(w1_tmp,w2_tmp,g,vocabulary,rule):
                 break
 
             
-    if len(g1)==0 or len(g2)==0:
+    if g1 is None or len(g1)==0 or g2 is None or len(g2)==0:
         return None,None,None,None
     
-    ig1,w1=find_index_an_lower_case(g1,w1_tmp,w2_tmp,vocabulary)
-    ig2,w2=find_index_an_lower_case(g2,w1_tmp,w2_tmp,vocabulary)
-    
+    ig1,w1,g1=find_index_and_target_word(g1,w1_tmp,w2_tmp,vocabulary)
+    ig2,w2,g2=find_index_and_target_word(g2,w1_tmp,w2_tmp,vocabulary)
+    print(ig1,w1_tmp,ig2,w2_tmp,g1,g2)
     if ig1 is None or ig2 is None:
         return None,None,None,None
     assert w1!=w2,(w1,w2,g1,g2,g)
@@ -170,31 +178,14 @@ def find_two_generations(w1_tmp,w2_tmp,g,vocabulary,rule):
         if g1 is None:
             return None,None,None,None
         #sentences have been changed a bit
-        ig1=find_index_an_lower_case(g1,w1,vocabulary)
-        ig2=find_index_an_lower_case(g2,w2,vocabulary)
+        ig1=find_index_and_target_word(g1,w1,vocabulary)
+        ig2=find_index_and_target_word(g2,w2,vocabulary)
         if ig1 is None or ig2 is None:
             return None,None,None,None
     #g1 and g2 must start and finish by capital letter and period
     #also checking that w1 and w2 are correctly placed.
     w1,w2,g1,g2=check_capital_and_punc(w1,w2,g1,g2,ig1,ig2)
     return g1,ig1,g2,ig2
-
-def find_unknown_word(generation,map_letters,dictionnary,word):
-    unknown_word=None
-    for genword in generation.split(' '):
-        if len(genword)==0:
-            continue
-        genword,_,_=space_characters(genword,map_letters)
-        if genword is None:
-            unknown_word=genword
-            break
-        for sub_genword in genword.split(' '):
-            #rejecting sentences that contains unknown words
-            #yet the target word might be unknown (inflection of known word)
-            if sub_genword.lower()!=word and sub_genword.lower() not in dictionnary:
-                unknown_word=sub_genword
-                break
-    return unknown_word
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -220,13 +211,7 @@ if __name__=='__main__':
         lines=buf.readlines()
     seen_words=set() #for some reason some base words are duplicated
     for line in tqdm.tqdm(lines):
-        line=line.rstrip().split('|')
-        if len(line)!=7:
-            continue
-        #previous
-        bin,w1,w2,rule,_,generation=line
-        #current
-        #bin,word,pos,inflection,pos_infl,rule,generation=line
+        bin,w1,p1,w2,p2,rule,generation=line.rstrip().split('|')
         #formatting the generated sentence from the llm
         g1,ig1,g2,ig2=find_two_generations(w1,w2,generation,vocabulary,rule)
         if g1 is None:
@@ -240,13 +225,11 @@ if __name__=='__main__':
 
         #changing w1 and w2 into blick
         gg1[ig1],gg2[ig2]=w2,w1
-        ss1,gg1,ss2,gg2=' '.join(gg1),' '.join(gg2)
-        
         #checking that the word is not in the modified sentences
         #in some cases the target wod is present twice in the original or generated sentences
-        assert w1 not in gg1 
-        assert w2 not in gg2
-       
+        assert w1 not in gg1,(w1,w2,gg1,gg2) 
+        assert w2 not in gg2,(w1,w2,gg1,gg2) 
+        gg1,gg2=' '.join(gg1),' '.join(gg2)
         #making prompt asking the LLM to solve the quadruplet
         prompt1=make_prompt(g1,gg1)
         answer1='A'

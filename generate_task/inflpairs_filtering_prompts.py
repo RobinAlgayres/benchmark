@@ -30,6 +30,5 @@ if __name__=='__main__':
                 singular=word
             prompt="Given the noun \'"+singular+"\'. Can this noun take a reflexive pronoun? Answer by yes or no. Write your answer in between brackets."
             out.append('|'.join((bin,word,pos,inflection,pos_infl,'issubject',prompt)))
-
     with open(output_file,'w') as buf:
         buf.write('\n'.join(out)+'\n')

@@ -2,32 +2,34 @@ import os,sys,tqdm
 import random, nltk
 import numpy as np
 import argparse
-from format_text import space_characters
 
 def make_prompt(s,gA,gB):
-    prompt="I have invented one new english word \'blick\' that you can use as in the following sentence: \n \
-            <start of sentence> "+s+"<end of sentence> \n \
-            Now I give you two new sentences A and B: \n \
-            <start of sentence A> "+gA+"<end of sentence A> \n \
-            <start of sentence B> "+gB+"<end of sentence B> \n \
-        Which of the sentence A or B uses the word 'blick' correctly? Put your answer, A or B, in between brackets."
-    return prompt
+    prompt=("I have invented one new english word \'blick\' that you can use as in the following sentence:",
+            "<start of sentence> "+s+"<end of sentence>",
+            "Now I give you two new sentences A and B:",
+            "<start of sentence A> "+gA+"<end of sentence A>",
+            "<start of sentence B> "+gB+"<end of sentence B>",
+            "Which of the sentence A or B uses the word 'blick' correctly? Put your answer, A or B, in between brackets.")
+    return '_'.join(prompt)
 
-def find_index_an_lower_case(sentence,word,vocabulary):
+def find_index_and_lower_case(sentence,word,vocabulary):
+    #find index of target word and lower case it in the generated sentence
     index=None
-    sentence=nltk.word_tokenizer(sentence)
+    sentence=nltk.word_tokenize(sentence)
     for i in range(len(sentence)):
-        w=sentence[i]
-        if w not in vocabulary:
-            return None
-        if w.lower()==word:
+        w=sentence[i].lower()
+        #print(w,word,w in vocabulary)
+        if len(w)>2 and w not in vocabulary:
+            #print('\"',w,'\": not in vocabulary, skipping generation')
+            return None,None
+        if w==word:
             #lower casing target word
-            w=w.lower()
+            sentence[i]=sentence[i].lower()
             if index is not None:
                 #word is present twice in the context
-                return None
+                return None,None
             index=i   
-    return index
+    return index,' '.join(sentence)
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     input_file =args.input_file
     output_file=args.output_file
     voc_file=args.voc_file
-    max_pairs_per_pos=1000
+    max_pairs_per_pos=4000
     
     vocabulary={}
     with open(voc_file) as buf:
@@ -59,8 +61,6 @@ if __name__ == "__main__":
         lines=buf.readlines()
     for line in tqdm.tqdm(lines):
         line=line.rstrip().split('|')
-        if len(line)!=7:
-            continue
         bin,word,pos,index_sentence,sentence,generation=line
         #formatting the generated sentence from the llm
         start=generation.rfind('[')
@@ -68,18 +68,19 @@ if __name__ == "__main__":
         if start==-1 or end==-1:
             continue
         generation=generation[start+1:end]
+        
         #getting the index of word in generation and put it in lower case in case it is not
-        index_generation=find_index_and_lower_case(generation,word,vocabulary)
+        index_generation,generation=find_index_and_lower_case(generation,word,vocabulary)
         if index_generation is None:
+            
             #there is an unknown word in the generation, or target word is present twice
             continue
-        
         if bin not in words:
             words[bin]={}
         if pos not in words[bin]:
             words[bin][pos]=[]
-        words[bin][pos].append((word,index_sentence,sentence,index_generation,generation))
-
+        words[bin][pos].append((word,int(index_sentence),sentence,index_generation,generation))
+    
     wordswap_list=[]
     wordpairs=set()
     for bin in words:
@@ -103,8 +104,9 @@ if __name__ == "__main__":
 
                     #creating new sentence with a new word inside
                     ss1,ss2,gg1,gg2=s1.split(' '),s2.split(' '),g1.split(' '),g2.split(' ')
-                    assert ss1[i1]==w1 and gg1[ig1]==w1,(ss1,gg1,i1,ig1,w1)
-                    assert ss2[i2]==w2 and gg2[ig2]==w2,(ss2,gg2,i2,ig2,w2)
+                    #print(i1,ig1)
+                    assert ss1[i1].lower()==w1 and gg1[ig1]==w1,(ss1,gg1,i1,ig1,w1)
+                    assert ss2[i2].lower()==w2 and gg2[ig2]==w2,(ss2,gg2,i2,ig2,w2)
 
                     #changing w1 and w2 into blick
                     ss1[i1],gg1[ig1],ss2[i2],gg2[ig2]='blick','blick','blick','blick'
@@ -130,8 +132,8 @@ if __name__ == "__main__":
                     prompts_list='/'.join((prompt1,prompt11,prompt2,prompt22,answer1,answer11,answer2,answer22))
                     tmp.append('|'.join((str(bin),pos,w1,s1,str(i1),g1,str(ig1),w2,s2,str(i2),g2,str(ig2),prompts_list)))
             random.shuffle(tmp)
-            print(bin,pos,len(tmp))
             wordswap_list+=tmp[:max_pairs_per_pos]
-
+            print(bin,pos,len(tmp[:max_pairs_per_pos]))
+    print('number of sentence pairs:',len(wordswap_list))
     with open(output_file,'w') as buf:
         buf.write('\n'.join(wordswap_list)+'\n')

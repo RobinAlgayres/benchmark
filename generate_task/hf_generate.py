@@ -11,8 +11,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
 
-#model_name = "huggingface/llama-7b"  # Replace with the model name you want to use
-model_name = "arnir0/Tiny-LLM"
+
+model_name = "arnir0/Tiny-LLM" # Replace with the model name you want to use
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
@@ -32,28 +32,45 @@ def get_files(output_dir,final_output_file):
     with open(final_output_file, "w") as outfile:
         outfile.write("\n".join(out) + "\n")
 
+def format_answer(g):
+    start = g.rfind("[")
+    end = g.rfind("]")
+    if start == -1 or end == -1:
+        if g in ["A", "B"]:
+            return g
+        else:
+            return None
+    g = g[start + 1 : end]
+    g = g.replace(" ", "")
+    return g.upper()
 
-def filter_gen(gen):
-    if "[" not in gen or "]" not in gen:
-        return "[]"
-    begin = gen.rfind("[")
-    end = gen.rfind("]")
-    gen = gen[begin + 1 : end]
-    return gen
 
+def correct_answers(llm_answers, answers):
+    ag1, ag11, ag2, ag22 = llm_answers
+    a1, a11, a2, a22 = answers
+    ag1 = format_answer(ag1)
+    ag11 = format_answer(ag11)
+    ag2 = format_answer(ag2)
+    ag22 = format_answer(ag22)
+    if ag1 == a1 and ag11 == a11 and ag2 == a2 and ag22 == a22:
+        return True
+    else:
+        return False
 # Async wrapper for running blocking code in a separate thread
 async def generate_completion(arg):
     line,temperature=arg
     line = line.rstrip().split("|")
-    line,prompts = line[:-1],line[-1]
-    if '/' in prompts:
-        #when several prompts and answers
-        prompts=prompts.split('/')  
-        ind=int(len(prompts)/2)
-        prompts,answers=prompts[:ind],prompts[-ind:]
-        line.extend(answers)
+    if "/" in line[-1]:
+        # when several prompts and answers
+        line, prompts_answers = line[:-1], line[-1]
+        prompts_answers = prompts_answers.split("/")
+        ind = int(len(prompts_answers) / 2)
+        prompts, answers = prompts_answers[:ind], prompts_answers[-ind:]
     else:
-        prompts=[prompts]
+        line, prompt = line[:-1], line[-1]
+        prompts = [prompt]
+
+    llm_answers = []
         
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt")  # Tokenize the prompt
@@ -64,9 +81,17 @@ async def generate_completion(arg):
             .replace("\n", " ")
             .replace("\r", " ")
             )
+        llm_answers.append(gen)
 
-        line.append(gen)
-    line = "|".join(line)#prompt removed and generations added to initial line
+    if len(llm_answers) > 1:
+        # using LLM for sentence filtering
+        keep_line = correct_answers(llm_answers, answers)
+        if not keep_line:
+            return None
+    else:
+        # using LLM for sentence generation
+        line.extend(llm_answers)
+    line = "|".join(line)  # prompt removed and generations added to initial line
     return line
 
 # Async wrapper to run the blocking function in a thread
@@ -128,6 +153,7 @@ if __name__ == "__main__":
             #print(e, b)
             print(b, "failed")
             continue
+        output = [o for o in output if o is not None]
         print(b, start, end, len(output), os.path.join(output_dir, str(b)))
         with open(output_file, "w") as buf:
             buf.write("\n".join(output) + "\n")

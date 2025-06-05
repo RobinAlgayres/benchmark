@@ -8,6 +8,16 @@ import nltk
 import json
 import argparse
 
+def concat_voc(path,vocabulary):
+    json.load
+    with open(path) as buf:
+        words=json.load(buf)
+        for word in words:
+            freq=words[word]
+            if word not in vocabulary:
+                vocabulary[word]=0
+            vocabulary[word]+=int(freq)
+
 def concat_dict(path,char_dict):
     json.load
     with open(path) as buf:
@@ -52,9 +62,23 @@ if __name__=='__main__':
     char_dict={}
     words_per_bins={}
     longtail_morpho,longtail_infl=[],[]
+    vocabulary={}
     for fid in os.listdir(wordlists_dir):
         path=os.path.join(wordlists_dir,fid)
-        concat_dict(path,char_dict)
+        if 'voc'==fid.split('.')[-1]:
+            concat_voc(path,vocabulary)
+        else:
+            concat_dict(path,char_dict)
+
+    #saving concatenated vocabularies
+    output=[]
+    voc=dict(sorted(vocabulary.items(), key=lambda item: item[1]))
+    for key in voc:
+        output.append(key+' '+str(voc[key]))
+    with open(output_voc_file,'w') as buf:
+        buf.write('\n'.join(output)+'\n')
+
+    print('saving vocabulary at',output_voc_file,len(output))
     print('nb keys',len(char_dict.keys()))
     spell = SpellChecker()
     voc={}
@@ -65,7 +89,6 @@ if __name__=='__main__':
         # with that POS tag is roughly the same as the total frequency of its cluster. 
         # intuitively, it means this word is particularly frequent in that inflection and POS tag.
         assert form not in voc
-        voc[form]=char_dict[form]['freq']
         most_common_pos_freq=0
         most_common_pos='UNK'
         #getting most frequent pos tag: noun,verb or UNK 
@@ -136,10 +159,4 @@ if __name__=='__main__':
         buf.write('\n'.join(longtail_morpho)+'\n')
     with open(output_inflpairs_file,'w') as buf:
         buf.write('\n'.join(longtail_infl)+'\n')
-    output=[]
-    voc=dict(sorted(voc.items(), key=lambda item: item[1]))
-    for key in voc:
-        output.append(key+' '+str(voc[key]))
-    with open(output_voc_file,'w') as buf:
-        buf.write('\n'.join(output)+'\n')
-    print('saving at',output_wordlist_file,output_inflpairs_file,output_voc_file)
+    print('saving at',output_wordlist_file,output_inflpairs_file)

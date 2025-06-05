@@ -84,7 +84,7 @@ def find_verb(g1,g2,ig1,ig2,w1,w2):
         return None,None,None,None
     return v1,v2,g1,g2
 
-def check_capital_and_punc(w1,w2,g1,g2,ig1,ig2):
+def check_capital_and_punc(w1,w2,g1,g2,ig1,ig2,use_split=True):
     #word are lower case and sentences start with upper case
     w1=w1.lower()
     w2=w2.lower()
@@ -106,14 +106,16 @@ def check_capital_and_punc(w1,w2,g1,g2,ig1,ig2):
     split_g2=g2.split(' ')
     split_g1 = list(filter(None, split_g1))
     split_g2 = list(filter(None, split_g2))
-
-    #the word are still in place
-    assert ig1<len(split_g1),(split_g1,w1,ig1,split_g2,w2,ig2)
-    assert ig2<len(split_g2),(split_g1,w1,ig1,split_g2,w2,ig2)
-    assert split_g1[ig1].lower()==w1,(split_g1,w1,ig1,split_g2,w2,ig2)
-    assert split_g2[ig2].lower()==w2,(split_g1,w1,ig1,split_g2,w2,ig2)
+    
+    if use_split:
+        #the word are still in place
+        assert ig1<len(split_g1),(split_g1,w1,ig1,split_g2,w2,ig2)
+        assert ig2<len(split_g2),(split_g1,w1,ig1,split_g2,w2,ig2)
+        assert split_g1[ig1].lower()==w1,(split_g1,w1,ig1,split_g2,w2,ig2)
+        assert split_g2[ig2].lower()==w2,(split_g1,w1,ig1,split_g2,w2,ig2)
     g1=' '.join(split_g1)
     g2=' '.join(split_g2)
+    
     return w1,w2,g1,g2
 
 def nn_inflections(noun):

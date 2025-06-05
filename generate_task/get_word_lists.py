@@ -59,11 +59,11 @@ def trim_and_get_word_index(context,word,max_context_len):
         assert len(context)>(max_context_len/2)
         assert len(context)<=max_context_len+1
         index-=start_ind
-        
+      
     return context,index
 
 
-def update_dict(line,map_letters,spell,char_dict):
+def update_dict(line,map_letters,spell,char_dict,vocabulary):
     max_context_len=128 #maximum size of stored contex sentence
     line=line.strip()
     line=line.replace('\t',' ')
@@ -78,7 +78,11 @@ def update_dict(line,map_letters,spell,char_dict):
         contex_sentence=format_context_sentence(sentence,map_letters['accepted_chars'])
         for i in range(len(pos_sentence)):
             word,pos=pos_sentence[i]
-            
+            lower_word=word.lower()
+            if lower_word not in vocabulary:
+                vocabulary[lower_word]=0
+            vocabulary[lower_word]+=1
+
             if word.isdigit() or len(word)<2: #not considering numbers, symbols, small words
                 continue
             if len(spell.known([word]))==0 or pos in ['NNP','NNPS']:
@@ -109,19 +113,24 @@ def update_dict(line,map_letters,spell,char_dict):
             #storing a sentence from dataset that contains word of interest
             current_context_len=char_dict[word]['POS'][pos]['context_len']
             if current_context_len<min(len(contex_sentence),max_context_len):
-                trimmed_context,word_index=trim_and_get_word_index(contex_sentence,word,max_context_len)
+                trimmed_context,word_index=trim_and_get_word_index(contex_sentence,word,max_context_len)    
                 if word_index is None:
                     #word is not present exactly once in the context sentence
                     continue
+                #putting target word to lower case in sentence 
+                trimmed_context[word_index]=trimmed_context[word_index].lower()  
+                
                 char_dict[word]['POS'][pos]['context']=' '.join(trimmed_context)  
                 char_dict[word]['POS'][pos]['word_index']=word_index
                 char_dict[word]['POS'][pos]['context_len']=len(trimmed_context)  
+
 
 def get_word_list(args):
     path,fid,output_wordslist_dir=args
     print(fid)
     c=0
     char_dict={}
+    vocabulary={}
     spell = SpellChecker()
     map_letters={}
     map_letters['letters']='abcdefghijklmnopqrstuvwxyz'
@@ -131,14 +140,14 @@ def get_word_list(args):
             #adding in dict all words that belong to the English dictionnary
             #if symbols are around the word, we may either skip the word
             #or separate this word from the symbols
-            update_dict(line,map_letters,spell,char_dict)
-            #if c>200:
-            #    break
-            c+=1
+            update_dict(line,map_letters,spell,char_dict,vocabulary)
     output_file=os.path.join(output_wordslist_dir,fid)
+    output_voc_file=os.path.join(output_wordslist_dir,fid+'.voc')
     with open(output_file,'w') as buf:
         buf.write(json.dumps(char_dict))
-    print('saving',output_file,'with vocabulary size:',len(char_dict))
+    with open(output_voc_file,'w') as buf:
+        buf.write(json.dumps(vocabulary))
+    print('saving',output_file,'with vocabulary size:',len(vocabulary))
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()

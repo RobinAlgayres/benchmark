@@ -66,8 +66,8 @@ def find_two_generations(w1_tmp,w2_tmp,g):
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_file",type=str,help='path to sentence pair generations for syntactic tasks',default='visual_task/visual_sentence_generations.txt')
-    parser.add_argument("--output_file",type=str,help='path to sentence pairs with filtering prompts filtered file',default='visual_task/visual_sentence_generations_with_filtering_prompts')
+    parser.add_argument("--input_file",type=str,help='path to sentence pair generations for visual tasks',default='visual_task/visual_sentence_generations.txt')
+    parser.add_argument("--output_file",type=str,help='path to sentence pairs with filtering visual filtered file',default='visual_task/visual_sentence_generations_with_filtering_prompts')
     return parser.parse_args(argv)
 
 if __name__=='__main__':

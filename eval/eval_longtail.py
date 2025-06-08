@@ -85,8 +85,8 @@ def parse_arguments(argv):
     parser.add_argument("--pair_file",type=str,help='path to sentence pairs',default='babylm-lt-swap/tmp_files_10M/wordswap_sentence_pairs_filtered')
     parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',choices=allowed_models,default='babylm/babyllama-100m-2024')
     parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/tmp_files_10M/results/')
-    parser.add_argument("--verbose",type=bool,help='output scores in console',default=True)
-    parser.add_argument("--use_prefix",type=bool,help='use prefix method, only for WordSwap',default=False)
+    parser.add_argument("--verbose",help='output scores in console',action='store_true')
+    parser.add_argument("--use_prefix",help='use prefix method, only for WordSwap',action='store_true')
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
@@ -101,7 +101,6 @@ if __name__ == '__main__':
         cuda=True
     else:
         cuda=False
-    
     output_dir=os.path.join(output_dir,task_type)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)

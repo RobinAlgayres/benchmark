@@ -19,6 +19,9 @@ def find_reflexive(split_g1,split_g2,w1,w2):
 
 def find_verb(g1,g2,w1,w2):
     #check if the verbs are variation of the verb 'be'
+    #for subject-verb agreement we want the main verb to be 'be'
+    #but for anaphora agreement we want the opposite as the verb is a singular/plural marker
+    
     split_g1=g1.split(' ')
     split_g2=g2.split(' ')
     if (w1[-1]=='s' and w2[-1]!='s') or (w1[-2:]=='es' and w2[-1]=='s'):

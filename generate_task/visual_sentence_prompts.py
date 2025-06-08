@@ -24,26 +24,36 @@ if __name__ == '__main__':
     grounded_word_list=args.grounded_word_list
     output_file=args.output_file
     words={}
-    freq_bins=np.array([128,256,512,1024,2048,4096,8192,16384,np.inf])
+    freq_bins=np.array([1,2,4,8,16,32,64,128,256,512,np.inf])
     with open(grounded_word_list) as buf:
-        data=json.load(buf)
-        for item in data:
-            word=item['noun']
-            if word not in words:
-                words[word]=0
-            words[word]+=1
+        for line in buf:
+            word,freq=line.rstrip().split(',')
+            try:
+                bin=np.where(int(freq)>=freq_bins)[0][-1]
+            except:
+                continue  
+            assert word not in words
+            words[word]=bin
+                
     keys=list(words.keys())
+    keys.sort()
     visual_pairs=[]
     seen_visual_pairs=set()
     max_pairs_per_bin=2000
+    max_diff_between_bins=0 #if 0, bins word pairs belong to the same frequency bin, increase
+                            #this value for small dataset
+    pairs_per_bin={}
+
     for i in range(len(keys)):
         w1=keys[i]
-        f1=words[w1]
+        b1=words[w1]
         for j in range(i+1,len(keys)):
             w2=keys[j]
-            f2=words[w2]
-            if w1==w2:
+            b2=words[w2]
+            if abs(b2-b1)>max_diff_between_bins:
                 continue
+            bin=min(b2,b1)
+            assert w1!=w2
             #if new pair add it to the output
             key=[w1,w2]
             key.sort()
@@ -51,14 +61,21 @@ if __name__ == '__main__':
             if key in seen_visual_pairs:
                 continue
             seen_visual_pairs.add(key)
+            if bin not in pairs_per_bin:
+                pairs_per_bin[bin]=[]
+            pairs_per_bin[bin].append((w1,w2))
+
+    bins=list(pairs_per_bin.keys())
+    bins.sort()
+    print('saving pairs per bin:')
+    for bin in bins:
+        print('bin:',bin,'nb of pairs:',len(pairs_per_bin[bin]))
+        random.shuffle(pairs_per_bin[bin])
+        pairs=pairs_per_bin[bin][:max_pairs_per_bin]
+        for w1,w2 in pairs:
             prompt=make_visual_prompt_minimal(w1,w2)
-            f=min(f1,f2)
-            bin=np.where(f>=freq_bins)[0][-1]
             visual_pairs.append('|'.join((str(bin),w1,w2,'NOUN','VISUAL',prompt)))
-            visual_pairs.append('|'.join((str(bin),w1,w2,'NOUN','VISUAL',prompt)))
-            visual_pairs.append('|'.join((str(bin),w1,w2,'NOUN','VISUAL',prompt)))
-            visual_pairs.append('|'.join((str(bin),w1,w2,'NOUN','VISUAL',prompt)))
-    print(output_file,len(visual_pairs))
+    print(output_file,'kept word pairs:',len(visual_pairs))
     with open(output_file,'w') as buf:
         buf.write('\n'.join(visual_pairs)+'\n')
      

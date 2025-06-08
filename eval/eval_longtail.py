@@ -85,6 +85,8 @@ def parse_arguments(argv):
     parser.add_argument("--pair_file",type=str,help='path to sentence pairs',default='babylm-lt-swap/tmp_files_10M/wordswap_sentence_pairs_filtered')
     parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',choices=allowed_models,default='babylm/babyllama-100m-2024')
     parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/tmp_files_10M/results/')
+    parser.add_argument("--verbose",type=bool,help='output scores in console',default=True)
+    parser.add_argument("--use_prefix",type=bool,help='use prefix method, only for WordSwap',default=False)
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
@@ -93,12 +95,13 @@ if __name__ == '__main__':
     pair_file=args.pair_file
     model_name=args.model_name
     output_dir=args.output_dir
+    use_prefix=args.use_prefix
+    verbose=args.verbose
     if torch.cuda.is_available():
         cuda=True
     else:
         cuda=False
-    use_context=False
-    verbose=False
+    
     output_dir=os.path.join(output_dir,task_type)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     if verbose:
         print('output directory:',output_dir)
         if task_type=='wordswap':
-            print('using prefix-method:',use_context)
+            print('using prefix-method:',use_prefix)
     pairs={}
     with open(pair_file) as buf:
         pairs=buf.readlines()
@@ -123,7 +126,7 @@ if __name__ == '__main__':
         elif task_type=='inflswap':
             bin,rule,w1,g1,ig1,w2,g2,ig2=pair.split('|')
             assert rule in ['NOUN','VERB']
-            assert not use_context
+            assert not use_prefix
         elif task_type=='agrswap':
             bin,rule,w1,g1,ig1,w2,g2,ig2=pair.split('|')
             assert rule in ['ANAPHORALONG','ANAPHORASHORT','DET','SVLONG','SVSHORT']
@@ -131,7 +134,7 @@ if __name__ == '__main__':
                 rule='SHORT'
             elif 'LONG' in rule:
                 rule='LONG'
-            assert not use_context
+            assert not use_prefix
 
         ig1,ig2=int(ig1),int(ig2)
         bin=int(bin)
@@ -141,7 +144,7 @@ if __name__ == '__main__':
         sentence_good_1,sentence_good_2=g1,g2
         sentence_bad_1,sentence_bad_2=gg1,gg2
 
-        if use_context:
+        if use_prefix:
             context_good_1,context_good_2=s1,s2
             context_bad_1,context_bad_2=s2,s1
             sentence_good_1=' '.join((context_good_1,sentence_good_1))
@@ -175,9 +178,9 @@ if __name__ == '__main__':
         print('Model:',model_name)
         print('pairs file:',pair_file)
         if task_type=='wordswap':
-            print('using prefix-method:',use_context)
-    else:
-        base_model_name=model_name.split('/')[-1]
-        cout['MODEL']=base_model_name
-        with open(os.path.join(output_dir,base_model_name+".json"),'w') as buf:
-            json.dump(cout,buf)
+            print('using prefix-method:',use_prefix)
+    
+    base_model_name=model_name.split('/')[-1]
+    cout['MODEL']=base_model_name
+    with open(os.path.join(output_dir,base_model_name+".json"),'w') as buf:
+        json.dump(cout,buf)

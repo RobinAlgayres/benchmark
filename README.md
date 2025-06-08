@@ -2,9 +2,9 @@
 
 This repository contains:
 
-1- Code to create the LT-Swap tasks on a given text dataset. 
+1) Code to create the LT-Swap tasks on a given text dataset 
 
-2- LT-Swap10M and LT-Swap100M constructed on the 10M and 100M version of the BabyLM datasets
+2) LT-Swap10M and LT-Swap100M constructed on the 10M and 100M version of the BabyLM datasets
 
 ## Installation
 
@@ -81,11 +81,26 @@ rm -r $TASK_DIR/tmp_dir
 
 ## Evaluating LM on LT-Swap10M and LT-Swap100M
 
-LT-Swap10M and LT-Swap100M are created based on the BabyLM 10M and 100M words text datasets. Each task is composed of three subtask files for WordSwap, InflectionSwap and AgreementSwap. Each line is formatted as follows:
+LT-Swap10M and LT-Swap100M are created based on the BabyLM 10M and 100M words text datasets. Each task is composed of three subtask files for WordSwap, InflectionSwap and AgreementSwap. 
+
+For WordSwap, each line is formatted as follows.
 ```
-<frequency bin index> <POS tag> <target word 1> <generated sentence 1> <index of word 1 in sentence 1> <target word 2> <generated sentence 2> <index of word 2 in sentence 2>
+<frequency bin index> <rule> <target word 1> <pretraining sentence 1> <index of word 1 in pretraining sentence 1> <generated sentence 1> <index of word 1 in generated sentence 1> <target word 2> <pretraining sentence 2> <index of word 1 in pretraining sentence 2> <generated sentence 2> <index of word 2 in generated sentence 2>
 ```
-In order to evaluate a model on any subtasks do the following
+
+The sentence from pretraining are kept in WordSwap if the user wishes to try the prefix method described in the paper (only for WordSwap). For InflectionSwap and AgreementSwap, the format of each line is the same without the pretraining sentences.
+
+In order to evaluate a model on one of the task use the following script.
 ```
-python eval_longtail.py <path to subtasks file> <huggingface model name>
+TASK_TYPE='wordswap' #choose among wordswap,inflswap or agrswap
+MODEL_NAME='babylm/babyllama-10m-2024' #list of allowed models in eval_longtail.py line 74
+PAIR_FILE='babylm-lt-swap/wordswap_pairs_10M'
+RESULT_DIR='babylm-lt-swap/results'
+python eval/eval_longtail.py --task_type=$TASK_TYPE --pair_file=$PAIR_FILE --model_name=$MODEL_NAME --output_dir=$RESULT_DIR
 ```
+
+And to reproduce the metrics (spread ratio, correlation between frequency bins and model performances), use the following script.
+```
+python eval/get_correlations.py $RESULT_DIR
+```
+

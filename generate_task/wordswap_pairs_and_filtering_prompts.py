@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     #if new pair add it to the output
                     key=[w1,w2]
                     key.sort()
-                    key='-'.join((w1,w2))
+                    key='-'.join(key)
                     if key in wordpairs:
                         continue
                     wordpairs.add(key)

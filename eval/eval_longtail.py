@@ -13,6 +13,17 @@ def inference(inputs,model,tokenizer,loss_fn,verbose=True,bert=None):
     assert len(inputs)%div==0
     assert len(inputs)==len(bins)*div
     assert batch_size%div==0
+    
+    #dictionnaries that stores results for pretty_print
+    freq_bins=np.array([0,1,2,4,8,16,32,64,128,256,512,np.inf])
+    for bin in range(len(freq_bins)-1):
+        success[bin]=0
+        all_pairs[bin]=0
+        pos_success[bin]={}
+        pos_all_pairs[bin]={}
+        for pos_tag in ['VERB','NOUN','LONG','SHORT','VISUAL']:
+            pos_success[bin][pos_tag]=0
+            pos_all_pairs[bin][pos_tag]=0
 
     for i in tqdm.tqdm(range(int(len(inputs)/batch_size)+1)):
         batch=inputs[i*batch_size:(i+1)*batch_size]
@@ -59,51 +70,69 @@ def swap_words(w1,ig1,g1,w2,ig2,g2):
 
 
 def parse_arguments(argv):
+    #add your model in this list and edit model_init() in utils.py 
+    allowed_models=['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023',\
+                    'babylm/babyllama-100m-2024','babylm/babyllama-10m-2024',\
+                    'ltg/gpt-bert-babylm-base','ltg/gpt-bert-babylm-base',\
+                    'babylm/ltgbert-100m-2024','babylm/ltgbert-10m-2024',\
+                    'bg51717/antlm-bert-ntp_mlm-100m','bg51717/antlm-bert-ntp_mlm-10m',\
+                    'babylm/roberta-base-strict-2023','ltg/gpt-bert-babylm-base',\
+                    'SzegedAI/babylm-strict-mlsm','SzegedAI/babylm-strict-small-mlsm',\
+                    'SzegedAI/babylm24_LSM_strict','SzegedAI/babylm24_LSM_strict-small']
+    task_types=['wordswap','inflswap','agrswap','visualswap']
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task_type",type=str,help='wordswap,inflswap,agrswap,visualswap',required=True)
+    parser.add_argument("--task_type",type=str,choices=task_types,required=True)
     parser.add_argument("--pair_file",type=str,help='path to sentence pairs',default='babylm-lt-swap/tmp_files_10M/wordswap_sentence_pairs_filtered')
-    parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',default='babylm/babyllama-100m-2024')
+    parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',choices=allowed_models,default='babylm/babyllama-100m-2024')
     parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/tmp_files_10M/results/')
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
     args=parse_arguments(sys.argv[1:])
     task_type=args.task_type
-    pairs_file=args.pairs_file
+    pair_file=args.pair_file
     model_name=args.model_name
     output_dir=args.output_dir
-    assert task_type in ['wordswap','inflswap','agrswap','visualswap']
     if torch.cuda.is_available():
         cuda=True
     else:
         cuda=False
     use_context=False
-    verbose=True
+    verbose=False
+    output_dir=os.path.join(output_dir,task_type)
     if not os.path.isdir(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir)
+        
     if verbose:
-        print('using context:',use_context)
+        print('output directory:',output_dir)
+        if task_type=='wordswap':
+            print('using prefix-method:',use_context)
     pairs={}
-    with open(pairs_file) as buf:
+    with open(pair_file) as buf:
         pairs=buf.readlines()
     success,pos_success,all_pairs,pos_all_pairs={},{},{},{}
     inputs,contexts,bins=[],[],[]
-    c=0
-    prop_context=0
-    freq_bins=np.array([0,1,2,4,8,16,32,64,128,256,512,np.inf])
-    for bin in range(len(freq_bins)-1):
-        success[bin]=0
-        all_pairs[bin]=0
-        pos_success[bin]={}
-        pos_all_pairs[bin]={}
-        for pos_tag in ['VERB','NOUN','LONG','SHORT','VISUAL']:
-            pos_success[bin][pos_tag]=0
-            pos_all_pairs[bin][pos_tag]=0
     selected_pairs,tmp_pairs=[],[]
 
     for p in tqdm.tqdm(range(len(pairs))):    
-        pair=pairs[p].rstrip()   
-        bin,rule,w1,p1,s1,i1,g1,ig1,w2,p2,s2,i2,g2,ig2=pair.split('|')
+        pair=pairs[p].rstrip() 
+        if task_type=='wordswap':
+            bin,rule,w1,s1,i1,g1,ig1,w2,s2,i2,g2,ig2=pair.split('|')
+            assert rule in ['NOUN','NOUN_P','VERB','VERB_Past','VERB_PresT','VERB_PresC']
+            rule=rule.split('_')[0]
+        elif task_type=='inflswap':
+            bin,rule,w1,g1,ig1,w2,g2,ig2=pair.split('|')
+            assert rule in ['NOUN','VERB']
+            assert not use_context
+        elif task_type=='agrswap':
+            bin,rule,w1,g1,ig1,w2,g2,ig2=pair.split('|')
+            assert rule in ['ANAPHORALONG','ANAPHORASHORT','DET','SVLONG','SVSHORT']
+            if 'SHORT' in rule or 'DET' in rule:
+                rule='SHORT'
+            elif 'LONG' in rule:
+                rule='LONG'
+            assert not use_context
+
         ig1,ig2=int(ig1),int(ig2)
         bin=int(bin)
     
@@ -113,11 +142,8 @@ if __name__ == '__main__':
         sentence_bad_1,sentence_bad_2=gg1,gg2
 
         if use_context:
-            assert task_type=='wordswap'
             context_good_1,context_good_2=s1,s2
             context_bad_1,context_bad_2=s2,s1
-            prop_context+=1
-
             sentence_good_1=' '.join((context_good_1,sentence_good_1))
             sentence_bad_1=' '.join((context_bad_1,sentence_bad_1))
             sentence_good_2=' '.join((context_good_2,sentence_good_2))
@@ -136,23 +162,20 @@ if __name__ == '__main__':
         bins.append((bin,rule,w1,w2,sentence_good_1,sentence_bad_1,sentence_good_2,sentence_bad_2))
         tmp_pairs.append(pair)
         
-    if verbose:
-        print('number of context found:',prop_context,'out of',len(inputs)/4,len(pairs),len(tmp_pairs))
     
-    
-    model, tokenizer, loss_fn, bert = model_init(model_name, cuda)  
+    model, tokenizer, loss_fn, model_type = model_init(model_name, cuda)  
     if verbose:
         print("Model init",model_name,"with vocab size:",tokenizer.vocab_size)
     else:
         print(model_name)
         
-    cout=inference(inputs,model,tokenizer,loss_fn,verbose,bert)
+    cout=inference(inputs,model,tokenizer,loss_fn,verbose,model_type)
     
     if verbose:
         print('Model:',model_name)
-        print('pairs file:',pairs_file)
-        print('using context:',use_context)
-        print('number of context found:',prop_context/len(pairs))
+        print('pairs file:',pair_file)
+        if task_type=='wordswap':
+            print('using prefix-method:',use_context)
     else:
         base_model_name=model_name.split('/')[-1]
         cout['MODEL']=base_model_name

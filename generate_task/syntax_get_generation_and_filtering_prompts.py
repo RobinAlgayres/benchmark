@@ -5,7 +5,7 @@ from preprocessing_utils import check_capital_and_punc,find_reflexive,find_verb
 import argparse
 
 
-def format_agreement_sentences(g1,g2,w1,w2,rule):
+def format_agreement_sentences(g1,g2,w1,w2,ig1,ig2,rule):
     if len(g1.split(' '))<3 or len(g2.split(' '))<3:
         return None,None
     split_g1=g1.split(' ')
@@ -25,10 +25,10 @@ def format_agreement_sentences(g1,g2,w1,w2,rule):
         else:
             print('not singular,plural',rule,w1,w2)
             return None,None
-        _,_,gg1,gg2=find_verb(g1,g2,ig1,ig2,w1,w2)
+        gg1,gg2=find_verb(g1,g2,w1,w2)
         if gg1 is not None:
             return None,None
-        split_g1,split_g2=find_reflexive(split_g1,split_g2)
+        split_g1,split_g2=find_reflexive(split_g1,split_g2,w1,w2)
         if split_g1 is None:
             return None,None
         
@@ -84,7 +84,7 @@ def format_agreement_sentences(g1,g2,w1,w2,rule):
             return None,None
         if split_g2[0].lower() in ['this','those','these']:
             return None,None
-        _,_,g1,g2=find_verb(g1,g2,ig1,ig2,w1,w2)
+        g1,g2=find_verb(g1,g2,w1,w2)
         if g1 is None:
             return None,None
 
@@ -109,11 +109,13 @@ def format_agreement_sentences(g1,g2,w1,w2,rule):
     return g1,g2
 
 def make_prompt(s1,s2):
-    prompt="Given the two sentences A and B: \n \
-            <start of sentence A> "+s1+"<end of sentence A> \n \
-            <start of sentence B> "+s2+"<end of sentence B> \n \
-        Which of the two sentences A or B is syntactically correct? Put your answer, A or B in between brackets."
-    return prompt
+    prompt = (
+    "Given the two sentences A and B:",
+    "<start of sentence A> "+s1+" <end of sentence A>",
+    "<start of sentence B> "+s2+" <end of sentence B>",
+    "Which of the two sentences A or B is syntactically correct? Write your answer (A or B) in between brackets."
+    )
+    return ' '.join(prompt)
 
 
 def find_index_and_target_word(sentence,w1,w2,vocabulary):
@@ -121,28 +123,28 @@ def find_index_and_target_word(sentence,w1,w2,vocabulary):
     #put that word in lower case, and return None if unkown word is used
     index=None
     sentence=nltk.word_tokenize(sentence)
-    new_sentence=[]
     for i in range(len(sentence)):
         w=sentence[i].lower()
-        new_sentence.append(sentence[i])
-        if len(w)>2 and w not in vocabulary:
-            return None,None
+        #if len(w)>2 and w not in vocabulary:
+        #    return None,None,None
         if w in [w1,w2]:
-            #lower casing target word
+            
             if index is not None:
                 #w1 and w2 are both present or one of them is present twice
-                return None,None
+                return None,None,None
             index=i  
             word=w
-            new_sentence[i]=w
-
-    return index,word,new_sentence
+    if index is None:
+        return None,None,None    
+    #lower casing target word
+    sentence[index]=sentence[index].lower() 
+    return index,word,' '.join(sentence)
 
 def find_two_generations(w1_tmp,w2_tmp,g,vocabulary,rule):
     start=g.rfind('[')
     end=g.rfind(']')
     if start==-1 or end==-1:
-        return None,None,None,None
+        return None,None,None,None,None,None
     g=g[start+1:end]
     g=g.replace('\\','')
     g=g.replace('\"','')
@@ -161,31 +163,30 @@ def find_two_generations(w1_tmp,w2_tmp,g,vocabulary,rule):
                 continue
             else:
                 break
-
             
     if g1 is None or len(g1)==0 or g2 is None or len(g2)==0:
-        return None,None,None,None
-    
+        return None,None,None,None,None,None
     ig1,w1,g1=find_index_and_target_word(g1,w1_tmp,w2_tmp,vocabulary)
     ig2,w2,g2=find_index_and_target_word(g2,w1_tmp,w2_tmp,vocabulary)
-    print(ig1,w1_tmp,ig2,w2_tmp,g1,g2)
-    if ig1 is None or ig2 is None:
-        return None,None,None,None
-    assert w1!=w2,(w1,w2,g1,g2,g)
+   
+    if ig1 is None or ig2 is None or w1==w2:
+        return None,None,None,None,None,None
   
+    
     if rule not in ['VERB','NOUN']:
-        g1,g2=format_agreement_sentences(g1,g2,rule)
+        
+        g1,g2=format_agreement_sentences(g1,g2,w1,w2,ig1,ig2,rule)
         if g1 is None:
-            return None,None,None,None
+            return None,None,None,None,None,None
         #sentences have been changed a bit
-        ig1=find_index_and_target_word(g1,w1,vocabulary)
-        ig2=find_index_and_target_word(g2,w2,vocabulary)
+        ig1,_,_=find_index_and_target_word(g1,w1,w1,vocabulary)
+        ig2,_,_=find_index_and_target_word(g2,w2,w2,vocabulary)
         if ig1 is None or ig2 is None:
-            return None,None,None,None
+            return None,None,None,None,None,None
     #g1 and g2 must start and finish by capital letter and period
     #also checking that w1 and w2 are correctly placed.
     w1,w2,g1,g2=check_capital_and_punc(w1,w2,g1,g2,ig1,ig2)
-    return g1,ig1,g2,ig2
+    return w1,g1,ig1,w2,g2,ig2
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
@@ -210,17 +211,29 @@ if __name__=='__main__':
     with open(input_file) as buf:
         lines=buf.readlines()
     seen_words=set() #for some reason some base words are duplicated
+    sentence_pairs=set()
     for line in tqdm.tqdm(lines):
-        bin,w1,p1,w2,p2,rule,generation=line.rstrip().split('|')
-        #formatting the generated sentence from the llm
-        g1,ig1,g2,ig2=find_two_generations(w1,w2,generation,vocabulary,rule)
-        if g1 is None:
-            #findind the two sentences did not work
+        try:
+            bin,w1,p1,w2,p2,rule,generation=line.rstrip().split('|')
+        except:
             continue
+        tt1,tt2=w1,w2
+        #formatting the generated sentence from the llm
+        w1,g1,ig1,w2,g2,ig2=find_two_generations(w1,w2,generation,vocabulary,rule)
+    
+        if g1 is None:
+            #finding the two sentences did not work
+            continue
+        key=[g1,g2]
+        key.sort()
+        key='-'.join(key)
+        if key in sentence_pairs:
+            continue
+        sentence_pairs.add(key)
         #getting the index of word in generation
         #creating new sentence with a new word inside
         gg1,gg2=g1.split(' '),g2.split(' ')
-        assert gg1[ig1]==w1,(gg1,ig1,w1)
+        assert gg1[ig1]==w1,(gg1,ig1,w1,gg2,ig2,w2)
         assert gg2[ig2]==w2,(gg2,ig2,w2)
 
         #changing w1 and w2 into blick
@@ -241,6 +254,7 @@ if __name__=='__main__':
         prompt22=make_prompt(gg2,g2)
         answer22='B'
         prompts_list='/'.join((prompt1,prompt11,prompt2,prompt22,answer1,answer11,answer2,answer22))
+
         out.append('|'.join((str(bin),rule,w1,g1,str(ig1),w2,g2,str(ig2),prompts_list)))
         
 

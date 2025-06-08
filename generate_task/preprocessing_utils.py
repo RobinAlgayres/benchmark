@@ -1,7 +1,7 @@
 import os,sys
 from spellchecker import SpellChecker
 
-def find_reflexive(split_g1,split_g2):
+def find_reflexive(split_g1,split_g2,w1,w2):
     pronouns=['himself','itself','herself','themselves']
     r1,r2=-1,-1
     for pronoun in pronouns:
@@ -17,8 +17,8 @@ def find_reflexive(split_g1,split_g2):
         return None,None
     return split_g1,split_g2
 
-def find_verb(g1,g2,ig1,ig2,w1,w2):
-    
+def find_verb(g1,g2,w1,w2):
+    #check if the verbs are variation of the verb 'be'
     split_g1=g1.split(' ')
     split_g2=g2.split(' ')
     if (w1[-1]=='s' and w2[-1]!='s') or (w1[-2:]=='es' and w2[-1]=='s'):
@@ -49,7 +49,7 @@ def find_verb(g1,g2,ig1,ig2,w1,w2):
                 i_s=singular.index(vs)
             else:
                 #print(singular,plural,vs,vp)
-                return None,None,None,None
+                return None,None
             break
         elif w+'s' in singular:
             vp=w
@@ -69,7 +69,7 @@ def find_verb(g1,g2,ig1,ig2,w1,w2):
 
     if i_s==-1:
         #print(singular,plural,i_s,i_p)
-        return None,None,None,None
+        return None,None
     singular=singular[:i_s+1]
     plural=plural[:i_p+1]
     gs=' '.join(singular)    
@@ -81,15 +81,14 @@ def find_verb(g1,g2,ig1,ig2,w1,w2):
         g1,g2=gp,gs
         v1,v2=vp,vs
     else:
-        return None,None,None,None
-    return v1,v2,g1,g2
+        return None,None
+    return g1,g2
 
 def check_capital_and_punc(w1,w2,g1,g2,ig1,ig2,use_split=True):
-    #word are lower case and sentences start with upper case
+    #word are lower case and sentences do not start with upper case
+    #in case target word is in first position
     w1=w1.lower()
     w2=w2.lower()
-    g1=g1[0].upper()+g1[1:]
-    g2=g2[0].upper()+g2[1:]
     #adding period at the end
     if g1[-1] not in ['.','!','?']:
         g1=g1+' .'

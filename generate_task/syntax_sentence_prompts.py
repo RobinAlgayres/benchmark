@@ -11,7 +11,7 @@ def make_prompt_minimal(word,inflection,pos,rule):
     elif rule=='NOUN':
         adding='that each uses one of these two nouns'
     elif rule=='DET':
-        adding=' '.join(('that shows a determiner-noun agreement, using either that/these/this/those. For instance, using the nouns \'misconduct\' and \'misconducts\', you can write something like: \'This misconduct is a serious offense. These misconducts are serious offenses.\'. Now please do the same with \'',word,'\' and,\'',inflection,'\''))
+        adding=' '.join(('that shows a determiner-noun agreement, using either that,these,this or those. For instance, using the nouns \'misconduct\' and \'misconducts\', you can write something like: \'This misconduct is a serious offense. These misconducts are serious offenses.\'. Now please do the same with \'',word,'\' and,\'',inflection,'\''))
     elif rule=='SVSHORT':
         adding='that show a short distance subject-verb agreement at the present tense. The subject and the verb must be placed close to each other'
     elif rule=='SVLONG':

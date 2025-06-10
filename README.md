@@ -59,7 +59,7 @@ rm -r $TASK_DIR/tmp_dir
 ```
 Filter words and create the prompts for AgreementSwap and InflectionSwap sentence generations
 ```
-python generate_taskssyntax_sentence_prompts.py $TASK_DIR/syntax_words_to_be_filtered $TASK_DIR/syntax_sentence_pairs_prompts
+python generate_tasks/syntax_sentence_prompts.py $TASK_DIR/syntax_words_to_be_filtered $TASK_DIR/syntax_sentence_pairs_prompts
 ```
 The prompts are sent to the LLM for generations
 ```
@@ -88,7 +88,7 @@ For WordSwap, each line is formatted as follows.
 <frequency bin index> <rule> <target word 1> <pretraining sentence 1> <index of word 1 in pretraining sentence 1> <generated sentence 1> <index of word 1 in generated sentence 1> <target word 2> <pretraining sentence 2> <index of word 1 in pretraining sentence 2> <generated sentence 2> <index of word 2 in generated sentence 2>
 ```
 
-The sentence from pretraining are kept in WordSwap if the user wishes to try the prefix method described in the paper (only for WordSwap). For InflectionSwap and AgreementSwap, the format of each line is the same without the pretraining sentences.
+The pretraining sentences serve for the prefix-method described in the paper (optional and only for WordSwap). For InflectionSwap and AgreementSwap, the format of each line is the same without the pretraining sentences.
 
 In order to evaluate a model on one of the task use the following script.
 ```

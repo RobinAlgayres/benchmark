@@ -12,12 +12,12 @@ Get the latest version of transformers, nltk and pytorch
 
 ## Creating tasks from a pretraining set
 
-The whole process is identical for any English text dataset. As an example we set $PRETRAINING_DIR to the BabyLM 10M words text datasets (from https://babylm.github.io/). And we set $TASK_DIR to the task directory to store the future task. 
+The whole process is identical for any English text dataset. As an example we set $PRETRAINING_DIR to the BabyLM 10M words text datasets (download from https://babylm.github.io/).
 
-First step is to create a list of word candidates and word inflections for each file in the BabyLM datasets. This is done in parallel with 5 cpus.
+First step is to create a list of word candidates and word inflections for each file in the BabyLM datasets.
 ```
-PRETRAINING_DIR=BabyLM_2024/train_10M/ #path to pretraining dir that contains only text files
-TASK_DIR='BabyLM_2024/task_files/ #path to task directory, will be created automatically
+PRETRAINING_DIR='BabyLM_2024/train_10M/' #path to pretraining dir that contains only text files
+TASK_DIR='BabyLM_2024/task_files/' #path to task directory, will be created automatically
 NCPUS=5  # Number of CPU cores to use; ideally, match this to the number of text files in the pretraining directory
 python generate_task/get_word_lists.py  --data=$PRETRAINING_DIR/ --output_wordlists_dir=$TASK_DIR/wordlists/ --ncpus=5
 ```

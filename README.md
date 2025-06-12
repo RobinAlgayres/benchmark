@@ -16,6 +16,9 @@ The whole process is identical for any English text dataset. As an example we se
 
 First step is to create a list of word candidates and word inflections for each file in the BabyLM datasets. This is done in parallel with 5 cpus.
 ```
+PRETRAINING_DIR=BabyLM_2024/train_10M/ #path to pretraining dir that contains only text files
+TASK_DIR='BabyLM_2024/task_files/ #path to task directory, will be created automatically
+NCPUS=5  # Number of CPU cores to use; ideally, match this to the number of text files in the pretraining directory
 python generate_task/get_word_lists.py  --data=$PRETRAINING_DIR/ --output_wordlists_dir=$TASK_DIR/wordlists/ --ncpus=5
 ```
 We merge those words lists and create two files: one list of words for WordSwap and one list of inflected pairs for InflectionSwap and AgreementSwap

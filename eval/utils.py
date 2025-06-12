@@ -96,7 +96,7 @@ def get_loss(inputs,attention_masks,labels,loss_fn,model):
     loss=loss_fn(logits.reshape(-1, vocab_size),labels.reshape(-1)).reshape(batch_size,-1)
     return loss
 
-def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_type=None):
+def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_type=None,norm_nll=False):
     if cuda:
         device='cuda'
     else:
@@ -106,7 +106,6 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
     #    tokenizer.pad_token ='[PAD]'
     #    tokenizer.eos_token ='[PAD]'
     #print(tokenizer.eos_token,tokenizer.pad_token)
-    #l
     inputs=tokenizer(sentences, return_tensors='pt', padding=True)
     inputs['input_ids']=inputs['input_ids'].to(device)
     inputs['attention_mask']=inputs['attention_mask'].to(device)
@@ -132,7 +131,7 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
             attention_mask=inputs['attention_mask'][i]
             current_context_mask=contexts_mask[i]
             assert torch.sum(attention_mask)>torch.sum(current_context_mask)
-            tmp=score_bert(model,inputs['input_ids'][i],attention_mask,tokenizer.mask_token_id,loss_fn,model_type,device,tokenizer,current_context_mask)
+            tmp=score_bert(model,inputs['input_ids'][i],attention_mask,tokenizer.mask_token_id,loss_fn,model_type,device,tokenizer,current_context_mask,norm_nll)
             loss.append(tmp)
         log_probs=-torch.tensor([loss])
     else:
@@ -152,7 +151,10 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
             inputs_mask[i,index]=0
         #applying mask and computing log probs  
         loss=loss*inputs_mask 
-        log_probs=-torch.sum(loss,dim=1)#/denom
+        denom=torch.sum(inputs_mask,dim=1)
+        log_probs=-torch.sum(loss,dim=1)
+        if norm_nll:
+            log_probs/=denom
         #FOR DEBUG
         #for i in range(len(inputs['input_ids'])):
         #   print(tokenizer.convert_ids_to_tokens(inputs['input_ids'][i]))

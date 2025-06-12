@@ -18,10 +18,8 @@ def find_index_and_lower_case(sentence,word,vocabulary):
     sentence=nltk.word_tokenize(sentence)
     for i in range(len(sentence)):
         w=sentence[i].lower()
-        #print(w,word,w in vocabulary)
-        if len(w)>2 and w not in vocabulary:
-            #print('\"',w,'\": not in vocabulary, skipping generation')
-            return None,None
+        if len(w)>2 and vocabulary is not None and w not in vocabulary:
+                return None,None
         if w==word:
             #lower casing target word
             sentence[i]=sentence[i].lower()
@@ -45,15 +43,20 @@ if __name__ == "__main__":
     input_file =args.input_file
     output_file=args.output_file
     voc_file=args.voc_file
+    use_vocabulary_file=True #set this to True to filter out generations that
+                             #contains words not present in the pretraining set
     max_pairs_per_pos=4000
     
-    vocabulary={}
-    with open(voc_file) as buf:
-        lines=buf.readlines()
-        for line in lines:
-            word,freq=line.rstrip().split(' ')
-            assert word not in vocabulary
-            vocabulary[word]=int(freq)
+    if use_vocabulary_file:
+        vocabulary={}
+        with open(voc_file) as buf:
+            lines=buf.readlines()
+            for line in lines:
+                word,freq=line.rstrip().split(' ')
+                assert word not in vocabulary
+                vocabulary[word]=int(freq)
+    else:
+        vocabulary=None
     c=0
     are_inflections,words,inflections=set(),{},{}
     seen_words=set() #for some reason some base words are duplicated

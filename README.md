@@ -38,7 +38,7 @@ mkdir $TASK_DIR/tmp_dir
 python generate_tasks/hf_generate.py --input_file=$TASK_DIR/wordswap_sentence_prompts --output_dir=$TASK_DIR/tmp_dir --output_file=$TASK_DIR/wordswap_sentence_generations
 rm -r $TASK_DIR/tmp_dir
 ```
-Create the prompts for the LLM filtering step
+Create the prompts for the LLM filtering step. The LLM may use words not present in the pretraining set, by default such generations are filtered out, but you may edit line 46 to allow this.
 ```
 python generate_task/wordswap_pairs_and_filtering_prompts.py --input_file=$TASK_DIR/wordswap_sentence_generations --output_file=$TASK_DIR/wordswap_sentence_pairs_filtering_prompts --voc_file=$TASK_DIR/vocabulary
 ```
@@ -71,7 +71,7 @@ python generate_task/hf_generate.py $TASK_DIR/syntax_sentence_pairs_prompts $TAS
 rm -r $TASK_DIR/tmp_dir
 ```
 
-Create the prompts for the LLM filtering step
+Create the prompts for the LLM filtering step. The LLM may use words not present in the pretraining set, by default such generations are filtered out, but you may edit line 203 to allow this.
 ```
 python generate_task/syntax_sentence_pairs_filtering_prompts.py $TASK_DIR/syntax_sentence_generations $TASK_DIR/syntax_sentence_pairs_filtering_prompts
 ```

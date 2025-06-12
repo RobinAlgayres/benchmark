@@ -125,8 +125,8 @@ def find_index_and_target_word(sentence,w1,w2,vocabulary):
     sentence=nltk.word_tokenize(sentence)
     for i in range(len(sentence)):
         w=sentence[i].lower()
-        #if len(w)>2 and w not in vocabulary:
-        #    return None,None,None
+        if len(w)>2 and vocabulary is not None and w not in vocabulary:
+            return None,None,None
         if w in [w1,w2]:
             
             if index is not None:
@@ -200,14 +200,19 @@ if __name__=='__main__':
     input_file=args.input_file
     output_file=args.output_file
     voc_file=args.voc_file
+    use_vocabulary_file=True #set this to True to filter out generations that
+                             #contains words not present in the pretraining set
     out=[]
-    vocabulary={}
-    with open(voc_file) as buf:
-        lines=buf.readlines()
-        for line in lines:
-            word,freq=line.rstrip().split(' ')
-            assert word not in vocabulary
-            vocabulary[word]=int(freq)
+    if use_vocabulary_file:
+        vocabulary={}
+        with open(voc_file) as buf:
+            lines=buf.readlines()
+            for line in lines:
+                word,freq=line.rstrip().split(' ')
+                assert word not in vocabulary
+                vocabulary[word]=int(freq)
+    else:
+        vocabulary=None
     with open(input_file) as buf:
         lines=buf.readlines()
     seen_words=set() #for some reason some base words are duplicated

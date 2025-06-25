@@ -45,7 +45,7 @@ if __name__ == "__main__":
     voc_file=args.voc_file
     use_vocabulary_file=True #set this to True to filter out generations that
                              #contains words not present in the pretraining set
-    max_pairs_per_pos=4000
+    max_pairs_per_pos=2000
     
     if use_vocabulary_file:
         vocabulary={}

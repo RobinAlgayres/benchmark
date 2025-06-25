@@ -2,34 +2,54 @@ import torch, tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForMaskedLM
 import numpy as np
 from generate_task.preprocessing_utils import format_pos
-import ast, nltk
+import ast, nltk, os
+try:
+    from unit_lm import UnitLM #slamkit usage
+except:
+    pass
 
 def model_init(model_name, cuda):
   
-    tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code=True)
-    if model_name in ['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023','babylm/babyllama-100m-2024','babylm/babyllama-10m-2024']:
-        model_type='GPT'   
-        model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True)              
-    elif model_name in ['ltg/gpt-bert-babylm-base','ltg/gpt-bert-babylm-base']:
-        model_type='GPT-BERT'
-        model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
-    elif model_name in ['babylm/ltgbert-100m-2024','babylm/ltgbert-10m-2024']:
-        model_type='BERT'
-        model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
-    elif model_name in ['bg51717/antlm-bert-ntp_mlm-100m','bg51717/antlm-bert-ntp_mlm-10m']:
-        model_type='BERT'
-        model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True)
-    elif model_name in ['babylm/roberta-base-strict-2023','babylm/roberta-base-strict-small-2023']: 
-        model_type='BERT'
-        model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
-    elif model_name in ['SzegedAI/babylm-strict-mlsm','SzegedAI/babylm-strict-small-mlsm']:
-        model_type='BERT'
-        model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
-    elif model_name in ['SzegedAI/babylm24_LSM_strict','SzegedAI/babylm24_LSM_strict-small']:          
-        model_type='BERT'
-        model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+    #if model_name is not a path, it has to belong to this list 
+    allowed_models=['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023',\
+                'babylm/babyllama-100m-2024','babylm/babyllama-10m-2024',\
+                'ltg/gpt-bert-babylm-base','ltg/gpt-bert-babylm-base',\
+                'babylm/ltgbert-100m-2024','babylm/ltgbert-10m-2024',\
+                'bg51717/antlm-bert-ntp_mlm-100m','bg51717/antlm-bert-ntp_mlm-10m',\
+                'babylm/roberta-base-strict-2023','ltg/gpt-bert-babylm-base',\
+                'SzegedAI/babylm-strict-mlsm','SzegedAI/babylm-strict-small-mlsm',\
+                'SzegedAI/babylm24_LSM_strict','SzegedAI/babylm24_LSM_strict-small']
+
+    if os.path.isdir(model_name):
+        model_type='GPT'  
+        tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m")
+        model = UnitLM.from_pretrained(model_name,local_files_only=True,device_map = 'auto')
     else:
-        assert False,(model_name,': unknown model name')
+        assert model_name in allowed_models,(model_name,allowed_models)
+        tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code=True)
+        if model_name in ['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023','babylm/babyllama-100m-2024','babylm/babyllama-10m-2024']:
+            model_type='GPT'    
+            model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True)              
+        elif model_name in ['ltg/gpt-bert-babylm-base','ltg/gpt-bert-babylm-base']:
+            model_type='GPT-BERT'
+            model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+        elif model_name in ['babylm/ltgbert-100m-2024','babylm/ltgbert-10m-2024']:
+            model_type='BERT'
+            model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+        elif model_name in ['bg51717/antlm-bert-ntp_mlm-100m','bg51717/antlm-bert-ntp_mlm-10m']:
+            model_type='BERT'
+            model = AutoModelForCausalLM.from_pretrained(model_name,trust_remote_code=True)
+        elif model_name in ['babylm/roberta-base-strict-2023','babylm/roberta-base-strict-small-2023']: 
+            model_type='BERT'
+            model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+        elif model_name in ['SzegedAI/babylm-strict-mlsm','SzegedAI/babylm-strict-small-mlsm']:
+            model_type='BERT'
+            model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+        elif model_name in ['SzegedAI/babylm24_LSM_strict','SzegedAI/babylm24_LSM_strict-small']:          
+            model_type='BERT'
+            model = AutoModelForMaskedLM.from_pretrained(model_name,trust_remote_code=True)
+        else:
+            assert False,(model_name,': unknown model name')
         
     assert model_type in ['BERT','GPT','GPT-BERT']
     loss_fn = torch.nn.CrossEntropyLoss(reduction='none')
@@ -118,6 +138,7 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
     mean_number_context_words=[]    
    
     for i in range(len(context_tokens['input_ids'])):
+        #looping over sentences one by one
         assert torch.sum(inputs['attention_mask'][i])>torch.sum(context_tokens['attention_mask'][i])
         nb_context_tokens=torch.sum(context_tokens['attention_mask'][i]).int()+1 #adding one for the BOS/CLS token
         contexts_mask[i,:nb_context_tokens]=1
@@ -147,9 +168,15 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
             inputs_mask=inputs_mask*(1-contexts_mask)
         #not computing loss on predicting end of sentence, it hads noise
         for i in range(len(loss)):
-            index=len(tokenizer.encode(sentences[i]))-1
-            inputs_mask[i,index]=0
-        #applying mask and computing log probs  
+            index=len(tokenizer.encode(sentences[i]))
+            inputs_mask[i,index-1]=0 #not predicting end of sentence to pad
+            inputs_mask[i,index-2]=0 #not predicting last word to end of sentence
+       # torch.set_printoptions(threshold=10_000)
+       # print(inputs)
+       # print(labels)
+       # print(inputs_mask)
+       # l
+        #applying mask and computing log probs 
         loss=loss*inputs_mask 
         denom=torch.sum(inputs_mask,dim=1)
         log_probs=-torch.sum(loss,dim=1)
@@ -159,8 +186,8 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
         #for i in range(len(inputs['input_ids'])):
         #   print(tokenizer.convert_ids_to_tokens(inputs['input_ids'][i]))
         
-    assert not torch.isnan(torch.sum(log_probs)),(log_probs,sentences)
-    assert not torch.isinf(torch.sum(log_probs)),(log_probs,sentences)
+    assert not torch.isnan(torch.sum(log_probs)),(log_probs)
+    assert not torch.isinf(torch.sum(log_probs)),(log_probs)
     return log_probs.cpu()
     
 
@@ -346,10 +373,8 @@ def pretty_print_avg(success,all_pairs,verbose):
         cout.append(' '.join(('Accuracy per bin:',str(avg_per_bin),'global average:',str(np.around(np.nanmean(avg_per_bin),3)))))
         cout.append(' '.join(('Accuracy per subtask:',str(avg_per_pos),'global average:',str(np.around(np.nanmean(avg_per_pos),3)))))
         print('\n'.join(cout))
-    else:
-        cout=out 
-        print(cout)
-    return cout
+        
+    return out
 
 def check_capital_and_punc(w1,w2,g1,g2,ig1,ig2):
     #word are lower case and sentences start with upper case

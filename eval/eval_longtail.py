@@ -47,7 +47,9 @@ def inference(inputs,model,tokenizer,loss_fn,verbose=True,bert=None):
             pos_all_pairs[bin][pos]+=2
         if verbose and (i-5)%15==0:
             pretty_print_avg(pos_success,pos_all_pairs,verbose) 
+        
     cout=pretty_print_avg(pos_success,pos_all_pairs,verbose) 
+
     return cout
     
 def swap_words(w1,ig1,g1,w2,ig2,g2):
@@ -71,20 +73,13 @@ def swap_words(w1,ig1,g1,w2,ig2,g2):
 
 def parse_arguments(argv):
     #add your model in this list and edit model_init() in utils.py 
-    allowed_models=['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023',\
-                    'babylm/babyllama-100m-2024','babylm/babyllama-10m-2024',\
-                    'ltg/gpt-bert-babylm-base','ltg/gpt-bert-babylm-base',\
-                    'babylm/ltgbert-100m-2024','babylm/ltgbert-10m-2024',\
-                    'bg51717/antlm-bert-ntp_mlm-100m','bg51717/antlm-bert-ntp_mlm-10m',\
-                    'babylm/roberta-base-strict-2023','ltg/gpt-bert-babylm-base',\
-                    'SzegedAI/babylm-strict-mlsm','SzegedAI/babylm-strict-small-mlsm',\
-                    'SzegedAI/babylm24_LSM_strict','SzegedAI/babylm24_LSM_strict-small']
+
     task_types=['wordswap','inflswap','agrswap','visualswap']
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task_type",type=str,choices=task_types,required=True)
-    parser.add_argument("--pair_file",type=str,help='path to sentence pairs',default='babylm-lt-swap/tmp_files_10M/wordswap_sentence_pairs_filtered')
-    parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',choices=allowed_models,default='babylm/babyllama-100m-2024')
-    parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/tmp_files_10M/results/')
+    parser.add_argument("--task_type",type=str,choices=task_types,default='wordswap')
+    parser.add_argument("--pair_file",type=str,help='path to sentence pairs',default='babylm-lt-swap/wordswap_pairs_10M')
+    parser.add_argument("--model_name",type=str,help='huggingface model name, edit model_init function in utils.py',default='babylm/opt-125m-strict-small-2023')
+    parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/results/')
     parser.add_argument("--verbose",help='output scores in console',action='store_true')
     parser.add_argument("--use_prefix",help='use prefix method, only for WordSwap',action='store_true')
     return parser.parse_args(argv)
@@ -104,7 +99,7 @@ if __name__ == '__main__':
     output_dir=os.path.join(output_dir,task_type)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-        
+
     if verbose:
         print('output directory:',output_dir)
         if task_type=='wordswap':
@@ -151,13 +146,14 @@ if __name__ == '__main__':
             sentence_good_2=' '.join((context_good_2,sentence_good_2))
             sentence_bad_2=' '.join((context_bad_2,sentence_bad_2))
         else:
-            context_good_1,context_good_2=' ',' '
-            context_bad_1,context_bad_2=' ',' '
+            context_good_1,context_good_2='',''
+            context_bad_1,context_bad_2='',''
 
-            sentence_good_1=context_good_1+sentence_good_1
-            sentence_bad_1=context_bad_1+sentence_bad_1
-            sentence_good_2=context_good_2+sentence_good_2
-            sentence_bad_2=context_bad_2+sentence_bad_2
+            #adding context=' ' or ' .' strangely helps opt-125 by quite a lot on BLIMP
+            #sentence_good_1=context_good_1+sentence_good_1
+            #sentence_bad_1=context_bad_1+sentence_bad_1
+            #sentence_good_2=context_good_2+sentence_good_2
+            #sentence_bad_2=context_bad_2+sentence_bad_2
 
         contexts+=[context_good_1,context_good_2,context_bad_1,context_bad_2]
         inputs+=[sentence_good_1,sentence_good_2,sentence_bad_1,sentence_bad_2]  
@@ -178,7 +174,7 @@ if __name__ == '__main__':
         print('pairs file:',pair_file)
         if task_type=='wordswap':
             print('using prefix-method:',use_prefix)
-    
+
     base_model_name=model_name.split('/')[-1]
     cout['MODEL']=base_model_name
     with open(os.path.join(output_dir,base_model_name+".json"),'w') as buf:

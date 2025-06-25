@@ -62,7 +62,7 @@ rm -r $TASK_DIR/tmp_dir
 ```
 Filter words and create the prompts for AgreementSwap and InflectionSwap sentence generations
 ```
-python generate_tasks/syntax_sentence_prompts.py $TASK_DIR/syntax_words_to_be_filtered $TASK_DIR/syntax_sentence_pairs_prompts
+python generate_task/syntax_sentence_prompts.py --inflpairs=$TASK_DIR/syntax_words_to_be_filtered --output_file=$TASK_DIR/syntax_sentence_pairs_prompts
 ```
 The prompts are sent to the LLM for generations
 ```
@@ -73,7 +73,7 @@ rm -r $TASK_DIR/tmp_dir
 
 Create the prompts for the LLM filtering step. The LLM may use words not present in the pretraining set, by default such generations are filtered out, but you may edit line 203 to allow this.
 ```
-python generate_task/syntax_sentence_pairs_filtering_prompts.py $TASK_DIR/syntax_sentence_generations $TASK_DIR/syntax_sentence_pairs_filtering_prompts
+python generate_task/syntax_get_generation_and_filtering_prompts.py --input_file=$TASK_DIR/syntax_sentence_generations --output_file=$TASK_DIR/syntax_sentence_pairs_filtering_prompts --voc_file=$TASK_DIR/vocabulary
 ```
 The prompts are sent to the LLM for filtering. The output is the final Agreement and InflectionSwap tasks: a text file with the sentence pairs that passed the filter. 
 ```

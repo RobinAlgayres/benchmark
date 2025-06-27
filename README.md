@@ -93,7 +93,7 @@ LT-Swap10M and LT-Swap100M are created based on the BabyLM 10M and 100M words te
 
 For WordSwap, each line is formatted as follows.
 ```
-<frequency bin index> <rule> <target word 1> <pretraining sentence 1> <index of word 1 in pretraining sentence 1> <generated sentence 1> <index of word 1 in generated sentence 1> <target word 2> <pretraining sentence 2> <index of word 1 in pretraining sentence 2> <generated sentence 2> <index of word 2 in generated sentence 2>
+<frequency bin index> <rule> <target word 1> <pretraining sentence 1> <index of word 1 in pretraining sentence 1> <generated sentence 1> <index of word 1 in generated sentence 1> <target word 2> <pretraining sentence 2> <index of word 2 in pretraining sentence 2> <generated sentence 2> <index of word 2 in generated sentence 2>
 ```
 
 The pretraining sentences serve for the prefix-method described in the paper (optional and only for WordSwap). For InflectionSwap and AgreementSwap, the format of each line is the same without the pretraining sentences.

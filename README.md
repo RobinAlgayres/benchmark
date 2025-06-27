@@ -45,7 +45,7 @@ python generate_task/wordswap_pairs_and_filtering_prompts.py --input_file=$TASK_
 The prompts are sent to the LLM for filtering. The output is the final WordSwap task: a text file with the sentence pairs that passed the filter.
 ```
 mkdir $TASK_DIR/tmp_dir
-python generate_task/hf_generate.py --input_file=$TASK_DIR/wordswap_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/wordswap_sentence_pairs
+python generate_task/hf_generate.py --input_file=$TASK_DIR/wordswap_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/wordswap_sentence_pairs_10M
 rm -r $TASK_DIR/tmp_dir
 ```
 ### Creating InflectionSwap and AgreementSwap
@@ -80,6 +80,11 @@ The prompts are sent to the LLM for filtering. The output is the final Agreement
 mkdir $TASK_DIR/tmp_dir
 python generate_task/hf_generate.py $TASK_DIR/syntax_sentence_pairs_filtering_prompts $TASK_DIR/tmp_dir $TASK_DIR/syntax_sentence_pairs
 rm -r $TASK_DIR/tmp_dir
+```
+
+The sentence pairs for agreementswap and inflectionswap are gathered in one file, in order to split them in two files use the following script.
+```
+python generate_task/split_agrswap_infswap.py $TASK_DIR/syntax_sentence_pairs $TASK_DIR/inflswap_sentence_pairs_10M $TASK_DIR/agrswap_sentence_pairs_10M
 ```
 
 ## Evaluating LM on LT-Swap10M and LT-Swap100M

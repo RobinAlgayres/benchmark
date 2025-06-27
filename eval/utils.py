@@ -22,7 +22,10 @@ def model_init(model_name, cuda):
 
     if os.path.isdir(model_name):
         model_type='GPT'  
-        tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m")
+        if True:
+            tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m",trust_remote_code=True)
+        else:
+            tokenizer = PreTrainedTokenizerFast(tokenizer_file="BabyLM_2024/word_babylm.json")
         model = UnitLM.from_pretrained(model_name,local_files_only=True,device_map = 'auto')
     else:
         assert model_name in allowed_models,(model_name,allowed_models)

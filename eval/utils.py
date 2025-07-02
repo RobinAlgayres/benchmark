@@ -1,5 +1,5 @@
 import torch, tqdm
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForMaskedLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForMaskedLM, PreTrainedTokenizerFast
 import numpy as np
 from generate_task.preprocessing_utils import format_pos
 import ast, nltk, os
@@ -8,7 +8,7 @@ try:
 except:
     pass
 
-def model_init(model_name, cuda):
+def model_init(model_name, cuda,tokenizer_file):
   
     #if model_name is not a path, it has to belong to this list 
     allowed_models=['babylm/opt-125m-strict-2023','babylm/opt-125m-strict-small-2023',\
@@ -22,10 +22,8 @@ def model_init(model_name, cuda):
 
     if os.path.isdir(model_name):
         model_type='GPT'  
-        if True:
-            tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m",trust_remote_code=True)
-        else:
-            tokenizer = PreTrainedTokenizerFast(tokenizer_file="BabyLM_2024/word_babylm.json")
+        #launching a model trained with Slamkit and a pretrained tokenizer 
+        tokenizer = PreTrainedTokenizerFast(tokenizer_file=tokenizer_file)
         model = UnitLM.from_pretrained(model_name,local_files_only=True,device_map = 'auto')
     else:
         assert model_name in allowed_models,(model_name,allowed_models)
@@ -161,7 +159,11 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
     else:
         labels=inputs['input_ids'].clone()
         labels[:,:-1]=inputs['input_ids'][:,1:]
-        labels[:,-1]=tokenizer.encode(tokenizer.eos_token)[0]
+        try:
+            #if there is an eos token defined
+            labels[:,-1]=tokenizer.encode(tokenizer.eos_token)[0]
+        except:
+            pass
         loss=get_loss(inputs['input_ids'],inputs['attention_mask'],labels,loss_fn,model)
         #intersection of non-padded BPEs and non-context BPEs
         #because we do not want to compute the loss on the context
@@ -173,12 +175,8 @@ def get_probs(model, tokenizer, sentences, loss_fn, contexts, cuda=False, model_
         for i in range(len(loss)):
             index=len(tokenizer.encode(sentences[i]))
             inputs_mask[i,index-1]=0 #not predicting end of sentence to pad
-            inputs_mask[i,index-2]=0 #not predicting last word to end of sentence
-       # torch.set_printoptions(threshold=10_000)
-       # print(inputs)
-       # print(labels)
-       # print(inputs_mask)
-       # l
+            #could be useful for agreementswap not to predict the last token
+            #inputs_mask[i,index-2]=0 #not predicting last word to end of sentence
         #applying mask and computing log probs 
         loss=loss*inputs_mask 
         denom=torch.sum(inputs_mask,dim=1)

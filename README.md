@@ -112,3 +112,10 @@ And to reproduce the metrics (spread ratio, correlation between frequency bins a
 python eval/get_correlations.py $RESULT_DIR
 ```
 
+## Licensing
+
+The data is intended for benchmarking purposes and is licensed CC-by-NC. The data is an output from Llama 3.1, and subject to the Llama 3.1 license. Use of the data to train, fine tune, or otherwise improve an AI model, which is distributed or made available, shall also include "Llama" at the beginning of any such AI model name.
+
+See the [LICENSE](https://github.com/meta-llama/llama3/blob/main/LICENSE) file, as well as our accompanying [Acceptable Use Policy](https://github.com/meta-llama/llama3?tab=readme-ov-file)
+
+

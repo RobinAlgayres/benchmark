@@ -47,15 +47,14 @@ def inference(inputs,model,tokenizer,loss_fn,verbose=True,bert=None):
             pos_all_pairs[bin][pos]+=2
         if verbose and (i-5)%15==0:
             pretty_print_avg(pos_success,pos_all_pairs,verbose) 
-        
     cout=pretty_print_avg(pos_success,pos_all_pairs,verbose) 
 
     return cout
     
 def swap_words(w1,ig1,g1,w2,ig2,g2):
     try:
-        assert g1[ig1:ig1+len(w1)]==w1,(w1,g1[ig1:ig1+len(w1)])
-        assert g2[ig2:ig2+len(w2)]==w2,(w2,g2[ig2:ig2+len(w2)])
+        assert g1[ig1:ig1+len(w1)].lower()==w1,(w1,g1[ig1:ig1+len(w1)])
+        assert g2[ig2:ig2+len(w2)].lower()==w2,(w2,g2[ig2:ig2+len(w2)])
         gg1=g1[:ig1]+w2+g1[ig1+len(w1):]
         gg2=g2[:ig2]+w1+g2[ig2+len(w2):]
     except:
@@ -82,6 +81,7 @@ def parse_arguments(argv):
     parser.add_argument("--output_dir",type=str,help='path to store results',default='babylm-lt-swap/results/')
     parser.add_argument("--verbose",help='output scores in console',action='store_true')
     parser.add_argument("--use_prefix",help='use prefix method, only for WordSwap',action='store_true')
+    parser.add_argument("--tokenizer_file",help='tokenizer vocabulary',default=".")
     return parser.parse_args(argv)
 
 if __name__ == '__main__':
@@ -92,6 +92,7 @@ if __name__ == '__main__':
     output_dir=args.output_dir
     use_prefix=args.use_prefix
     verbose=args.verbose
+    tokenizer_file=args.tokenizer_file
     if torch.cuda.is_available():
         cuda=True
     else:
@@ -111,7 +112,7 @@ if __name__ == '__main__':
     inputs,contexts,bins=[],[],[]
     selected_pairs,tmp_pairs=[],[]
 
-    for p in tqdm.tqdm(range(len(pairs))):    
+    for p in range(len(pairs)):    
         pair=pairs[p].rstrip() 
         if task_type=='wordswap':
             bin,rule,w1,s1,i1,g1,ig1,w2,s2,i2,g2,ig2=pair.split('|')
@@ -129,10 +130,11 @@ if __name__ == '__main__':
             elif 'LONG' in rule:
                 rule='LONG'
             assert not use_prefix
+        
 
         ig1,ig2=int(ig1),int(ig2)
         bin=int(bin)
-    
+        
         gg1,gg2=swap_words(w1,ig1,g1,w2,ig2,g2)    
        
         sentence_good_1,sentence_good_2=g1,g2
@@ -161,11 +163,11 @@ if __name__ == '__main__':
         tmp_pairs.append(pair)
         
     
-    model, tokenizer, loss_fn, model_type = model_init(model_name, cuda)  
+    model, tokenizer, loss_fn, model_type = model_init(model_name, cuda, tokenizer_file)  
     if verbose:
         print("Model init",model_name,"with vocab size:",tokenizer.vocab_size)
-    else:
-        print(model_name)
+    #else:
+    #    print(model_name)
         
     cout=inference(inputs,model,tokenizer,loss_fn,verbose,model_type)
     
@@ -179,3 +181,4 @@ if __name__ == '__main__':
     cout['MODEL']=base_model_name
     with open(os.path.join(output_dir,base_model_name+".json"),'w') as buf:
         json.dump(cout,buf)
+    print(task_type,' '.join([str(v) for v in cout['AVG_BIN']]))

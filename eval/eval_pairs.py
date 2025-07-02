@@ -32,6 +32,10 @@ def pretty_print(success,all_pairs,verbose=False):
 if __name__ == '__main__':
     pairs_file=sys.argv[1]
     model_name=sys.argv[2]
+    try:
+        tokenizer_file=sys.argv[3]
+    except:
+        tokenizer_file=None
     norm_nll=True #normalize NLL by sentence length
     if torch.cuda.is_available():
         cuda=True
@@ -68,7 +72,7 @@ if __name__ == '__main__':
         bins.append(bin)
     
     
-    model, tokenizer, loss_fn, bert = model_init(model_name, cuda)  
+    model, tokenizer, loss_fn, bert = model_init(model_name, cuda,tokenizer_file)  
     print("Model init",model_name,"with vocab size:",tokenizer.vocab_size)
 
     batch_size=200*2 #needs to be a multiple of 4 s
